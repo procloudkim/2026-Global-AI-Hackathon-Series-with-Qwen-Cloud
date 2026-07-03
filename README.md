@@ -82,3 +82,8 @@ Optional estimated cost env vars:
 
 - `BENCH_INPUT_PRICE_PER_1M`
 - `BENCH_OUTPUT_PRICE_PER_1M`
+
+## Submission helpers
+
+- Devpost template: `submission/DEVPOST_TEMPLATE.md`
+- Preflight script: `scripts/preflight.ps1`
