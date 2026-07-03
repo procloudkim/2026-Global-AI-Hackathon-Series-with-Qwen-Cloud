@@ -84,6 +84,28 @@ def main() -> None:
     print(md)
 
 
+def valid_slugs(store: MemoryStore) -> set[str]:
+    return {p.slug for p in store.list_wiki_pages()}
+
+
+def judge_json_answer(text: str, store: MemoryStore) -> bool:
+    """Strict success: parseable JSON, non-empty answer, and >=1 citation matching a real wiki slug."""
+    try:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end <= start:
+            return False
+        obj = json.loads(text[start : end + 1])
+    except (json.JSONDecodeError, TypeError):
+        return False
+    answer = str(obj.get("answer") or "").strip()
+    citations = obj.get("citations") or []
+    if not answer or not isinstance(citations, list):
+        return False
+    slugs = valid_slugs(store)
+    return any(str(c).strip() in slugs for c in citations)
+
+
 def load_questions(path: Path) -> list[str]:
     if not path.exists():
         return []
@@ -102,7 +124,7 @@ def baseline_full_read(question: str, store: MemoryStore, router) -> RunMetric:
         f"Context:\n{context}"
     )
     resp = router.chat(Tier.HEAVY, system=QUERY_LIGHT_SYSTEM_PREFIX, user=user, max_tokens=900)
-    success = "answer" in (resp.text or "")
+    success = judge_json_answer(resp.text or "", store)
     return metric_from_usage(resp.prompt_tokens, resp.completion_tokens, success)
 
 
@@ -115,7 +137,7 @@ def baseline_heavy_only(question: str, store: MemoryStore, router) -> RunMetric:
         f"Context:\n{context}"
     )
     resp = router.chat(Tier.HEAVY, system=QUERY_LIGHT_SYSTEM_PREFIX, user=user, max_tokens=700)
-    success = "answer" in (resp.text or "")
+    success = judge_json_answer(resp.text or "", store)
     return metric_from_usage(resp.prompt_tokens, resp.completion_tokens, success)
 
 
@@ -130,7 +152,8 @@ def baseline_freeform(question: str, store: MemoryStore, router) -> RunMetric:
 
 def candidate_surgical(question: str, store: MemoryStore, router) -> RunMetric:
     result = answer_question(question=question, store=store, router=router, top_k=3)
-    success = bool(result.answer.strip()) and bool(result.citations)
+    slugs = valid_slugs(store)
+    success = bool(result.answer.strip()) and any(str(c).strip() in slugs for c in result.citations)
     return metric_from_usage(result.prompt_tokens, result.completion_tokens, success)
 
 

@@ -1,3 +1,12 @@
 How can we reduce token cost while preserving response quality?
 When should we escalate from a light model to a heavy model?
 Why is index-first retrieval better than full wiki scans?
+What is the purpose of a token budget policy in an agent harness?
+How does the forget engine decide which pages to archive?
+What role do citations play in memory retrieval quality?
+How does a static prompt prefix improve cache hit rates?
+What is cost_per_success and why is it a better KPI than raw tokens?
+How should conflicting information between two memory pages be resolved?
+What is the benefit of a strict JSON output contract over freeform answers?
+How does top-k page selection limit context size?
+Why should memory writes be separated from memory reads in an agent?

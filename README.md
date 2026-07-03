@@ -30,6 +30,22 @@ uv run uvicorn librarian.main:app --reload
 - API docs: `http://127.0.0.1:8000/docs`
 - Demo UI: `http://127.0.0.1:8000/`
 
+## Docker run (portable)
+
+```bash
+docker compose up --build -d
+```
+
+- App: `http://127.0.0.1:8080/`
+- API docs: `http://127.0.0.1:8080/docs`
+- Memory volume: `./memory` (persisted on host)
+
+To stop:
+
+```bash
+docker compose down
+```
+
 ## Development methodology
 
 This project is developed following [AI-DLC](https://github.com/awslabs/aidlc-workflows)
@@ -50,6 +66,7 @@ Deployment scripts are included for Alibaba Cloud ECS:
 
 - `deploy/setup.sh` - one-time ECS setup + systemd unit
 - `deploy/deploy.sh` - pull latest code, run tests, restart service, health check
+- `Dockerfile`, `docker-compose.yml` - portable container deployment path
 
 Qwen Cloud API integration code path:
 

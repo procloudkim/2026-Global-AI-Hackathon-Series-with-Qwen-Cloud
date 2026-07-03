@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph Client
+        UI[Web UI / CLI]
+        MCP[MCP Client<br/>Claude Code etc.]
+    end
+
+    subgraph AlibabaCloud[Alibaba Cloud - ECS/FC]
+        API[FastAPI Backend]
+        ROUTER[Model Router<br/>LIGHT / HEAVY]
+        subgraph Pipelines
+            ING[Ingest]
+            QRY[Query]
+            LNT[Forget/Lint]
+        end
+        subgraph MemoryStore[Memory Store]
+            RAW[raw/ immutable sources]
+            WIKI[wiki/ pages + index.md + log.md]
+            ARC[archive/ forgotten memory]
+            GRAPH[graph.json link graph]
+        end
+        METER[Run Ledger]
+    end
+
+    QWEN[Qwen Cloud<br/>DashScope OpenAI-compatible API]
+
+    UI --> API
+    MCP --> API
+    API --> Pipelines
+    Pipelines --> ROUTER --> QWEN
+    Pipelines <--> MemoryStore
+    API --> METER
+
