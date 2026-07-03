@@ -33,3 +33,14 @@ Conceptual foundations: [karpathy/llm-wiki](https://gist.github.com/karpathy/442
 ## License
 
 MIT
+
+## Alibaba Cloud deployment proof (Track submission)
+
+Deployment scripts are included for Alibaba Cloud ECS:
+
+- `deploy/setup.sh` - one-time ECS setup + systemd unit
+- `deploy/deploy.sh` - pull latest code, run tests, restart service, health check
+
+Qwen Cloud API integration code path:
+
+- `src/librarian/llm.py` (DashScope OpenAI-compatible API client)
