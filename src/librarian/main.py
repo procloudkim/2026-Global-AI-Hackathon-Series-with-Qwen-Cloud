@@ -2,6 +2,7 @@
 from time import perf_counter
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
 
 from . import __version__
 from .forget import run_lint
@@ -23,7 +24,7 @@ class IngestRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
-    top_k: int = 5
+    top_k: int = 3
 
 
 class LintRequest(BaseModel):
@@ -33,6 +34,77 @@ class LintRequest(BaseModel):
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "version": __version__}
+
+
+@app.get("/", response_class=HTMLResponse)
+def home() -> str:
+    return """
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Librarian Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 1000px; }
+    textarea, input { width: 100%; margin: 6px 0; }
+    textarea { min-height: 90px; }
+    button { margin: 6px 0 16px; padding: 6px 12px; }
+    pre { background: #f5f5f5; padding: 10px; white-space: pre-wrap; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Librarian (Track 1 MemoryAgent)</h1>
+  <p>Minimal demo UI for ingest/query/lint/stats.</p>
+  <div class="row">
+    <div>
+      <h3>Ingest</h3>
+      <input id="source_id" placeholder="source-id" />
+      <textarea id="ingest_text" placeholder="source text"></textarea>
+      <button onclick="doIngest()">POST /ingest</button>
+    </div>
+    <div>
+      <h3>Query</h3>
+      <textarea id="question" placeholder="question"></textarea>
+      <button onclick="doQuery()">POST /query</button>
+      <h3>Lint</h3>
+      <button onclick="doLint()">POST /lint</button>
+      <h3>Stats</h3>
+      <button onclick="doStats()">GET /stats</button>
+    </div>
+  </div>
+  <h3>Result</h3>
+  <pre id="out">{}</pre>
+  <script>
+    const out = document.getElementById("out");
+    async function call(url, method="GET", body=null) {
+      const res = await fetch(url, {
+        method,
+        headers: {"Content-Type":"application/json"},
+        body: body ? JSON.stringify(body) : null
+      });
+      const txt = await res.text();
+      try { out.textContent = JSON.stringify(JSON.parse(txt), null, 2); }
+      catch { out.textContent = txt; }
+    }
+    function doIngest() {
+      call("/ingest", "POST", {
+        source_id: document.getElementById("source_id").value,
+        text: document.getElementById("ingest_text").value
+      });
+    }
+    function doQuery() {
+      call("/query", "POST", {
+        question: document.getElementById("question").value,
+        top_k: 5
+      });
+    }
+    function doLint() { call("/lint", "POST", {apply_archive:false}); }
+    function doStats() { call("/stats"); }
+  </script>
+</body>
+</html>
+"""
 
 
 @app.post("/ingest")

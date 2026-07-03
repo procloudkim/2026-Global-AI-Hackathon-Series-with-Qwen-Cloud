@@ -1,0 +1,41 @@
+[
+  {
+    "experiment_id": "L-E1_surgical_vs_fullread",
+    "baseline_tokens": 1821,
+    "candidate_tokens": 1643,
+    "token_reduction_rate": 0.0977,
+    "baseline_cost_est": 0.0,
+    "candidate_cost_est": 0.0,
+    "baseline_cost_per_success": 0.0,
+    "candidate_cost_per_success": 0.0,
+    "cost_per_success_reduction_rate": null,
+    "baseline_successes": 3,
+    "candidate_successes": 3
+  },
+  {
+    "experiment_id": "L-E2_smallfirst_vs_heavyonly",
+    "baseline_tokens": 1439,
+    "candidate_tokens": 1654,
+    "token_reduction_rate": -0.1494,
+    "baseline_cost_est": 0.0,
+    "candidate_cost_est": 0.0,
+    "baseline_cost_per_success": 0.0,
+    "candidate_cost_per_success": 0.0,
+    "cost_per_success_reduction_rate": null,
+    "baseline_successes": 3,
+    "candidate_successes": 3
+  },
+  {
+    "experiment_id": "L-E3_contract_vs_freeform",
+    "baseline_tokens": 3855,
+    "candidate_tokens": 1655,
+    "token_reduction_rate": 0.5707,
+    "baseline_cost_est": 0.0,
+    "candidate_cost_est": 0.0,
+    "baseline_cost_per_success": 0.0,
+    "candidate_cost_per_success": 0.0,
+    "cost_per_success_reduction_rate": null,
+    "baseline_successes": 3,
+    "candidate_successes": 3
+  }
+]

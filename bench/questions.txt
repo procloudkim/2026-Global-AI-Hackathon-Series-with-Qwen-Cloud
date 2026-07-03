@@ -1,0 +1,3 @@
+How can we reduce token cost while preserving response quality?
+When should we escalate from a light model to a heavy model?
+Why is index-first retrieval better than full wiki scans?

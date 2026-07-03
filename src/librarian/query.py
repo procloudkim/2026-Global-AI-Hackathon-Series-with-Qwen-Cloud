@@ -40,8 +40,8 @@ def answer_question(
     question: str,
     store: MemoryStore,
     router: SupportsChat,
-    top_k: int = 5,
-    confidence_threshold: float = 0.72,
+    top_k: int = 3,
+    confidence_threshold: float = 0.3,
 ) -> QueryResult:
     selected = select_top_k_pages(store, question, k=top_k)
     if not selected:
@@ -63,9 +63,12 @@ def answer_question(
         system=QUERY_LIGHT_SYSTEM_PREFIX,
         user=payload,
         temperature=0.1,
-        max_tokens=500,
+        max_tokens=220,
     )
-    light_parsed = _parse_query_json(light_resp.text)
+    try:
+        light_parsed = _parse_query_json(light_resp.text)
+    except ValueError:
+        light_parsed = {"answer": light_resp.text.strip(), "citations": [], "confidence": 0.0}
     light_conf = float(light_parsed.get("confidence", 0.0))
 
     if light_conf >= confidence_threshold and light_parsed["citations"]:
@@ -86,9 +89,12 @@ def answer_question(
         system=QUERY_HEAVY_SYSTEM_PREFIX,
         user=payload,
         temperature=0.2,
-        max_tokens=700,
+        max_tokens=320,
     )
-    heavy_parsed = _parse_query_json(heavy_resp.text)
+    try:
+        heavy_parsed = _parse_query_json(heavy_resp.text)
+    except ValueError:
+        heavy_parsed = {"answer": heavy_resp.text.strip(), "citations": [], "confidence": 0.0}
     return QueryResult(
         answer=heavy_parsed["answer"],
         citations=_clean_citations(heavy_parsed["citations"], selected),
@@ -174,4 +180,3 @@ def _clean_citations(citations: list[str], pages: list[WikiPage]) -> list[str]:
         if slug in allowed and slug not in out:
             out.append(slug)
     return out
-

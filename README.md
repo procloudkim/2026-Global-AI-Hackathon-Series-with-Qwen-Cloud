@@ -20,6 +20,16 @@ Key capabilities (Track 1 requirements):
 🚧 In development for the hackathon (deadline 2026-07-09 PT). See `aidlc-docs/` for the
 AI-DLC design documents (requirements → units of work → architecture → operations).
 
+## Local run
+
+```bash
+uv sync
+uv run uvicorn librarian.main:app --reload
+```
+
+- API docs: `http://127.0.0.1:8000/docs`
+- Demo UI: `http://127.0.0.1:8000/`
+
 ## Development methodology
 
 This project is developed following [AI-DLC](https://github.com/awslabs/aidlc-workflows)
@@ -44,3 +54,31 @@ Deployment scripts are included for Alibaba Cloud ECS:
 Qwen Cloud API integration code path:
 
 - `src/librarian/llm.py` (DashScope OpenAI-compatible API client)
+
+## MCP tools
+
+Librarian exposes MCP tools for agent integration:
+
+- `memory_ingest(source_id, text)`
+- `memory_query(question, top_k=5)`
+- `memory_lint(apply_archive=true)`
+- `memory_stats()`
+
+Run MCP server (stdio):
+
+```bash
+uv run python -m librarian.mcp_server
+```
+
+## U8 A/B benchmark
+
+Run token minimization experiments (L-E1~L-E3):
+
+```bash
+uv run python bench/run_ab.py
+```
+
+Optional estimated cost env vars:
+
+- `BENCH_INPUT_PRICE_PER_1M`
+- `BENCH_OUTPUT_PRICE_PER_1M`
