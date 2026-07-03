@@ -34,12 +34,19 @@ class ModelRouter:
         self._client = OpenAI(api_key=s.api_key, base_url=s.base_url)
         self._models = {Tier.LIGHT: s.light_model, Tier.HEAVY: s.heavy_model}
 
-    def chat(self, tier: Tier, system: str, user: str,
-             temperature: float = 0.3) -> LLMResult:
+    def chat(
+        self,
+        tier: Tier,
+        system: str,
+        user: str,
+        temperature: float = 0.3,
+        max_tokens: int | None = None,
+    ) -> LLMResult:
         model = self._models[tier]
         resp = self._client.chat.completions.create(
             model=model,
             temperature=temperature,
+            max_tokens=max_tokens,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
