@@ -7,6 +7,7 @@ from . import __version__
 from .ingest import ingest_source
 from .llm import Tier, get_router
 from .meter import RunEvent, RunLedger, now_iso
+from .query import answer_question
 from .store import MemoryStore
 
 app = FastAPI(title="Librarian", version=__version__)
@@ -17,6 +18,11 @@ ledger = RunLedger()
 class IngestRequest(BaseModel):
     source_id: str
     text: str
+
+
+class QueryRequest(BaseModel):
+    question: str
+    top_k: int = 5
 
 
 @app.get("/health")
@@ -106,6 +112,80 @@ def stats() -> dict:
             "index_exists": store.index_path.exists(),
             "log_exists": store.log_path.exists(),
         },
+    }
+
+
+@app.post("/query")
+def query(payload: QueryRequest) -> dict:
+    started = perf_counter()
+    try:
+        result = answer_question(
+            question=payload.question,
+            store=store,
+            router=get_router(),
+            top_k=payload.top_k,
+        )
+        latency_ms = int((perf_counter() - started) * 1000)
+        ledger.append(
+            RunEvent(
+                ts=now_iso(),
+                task_type="query",
+                route_tier=result.route,
+                model=result.model,
+                prompt_tokens=result.prompt_tokens,
+                completion_tokens=result.completion_tokens,
+                total_tokens=result.total_tokens,
+                latency_ms=latency_ms,
+                success=True,
+            )
+        )
+    except ValueError as e:
+        latency_ms = int((perf_counter() - started) * 1000)
+        ledger.append(
+            RunEvent(
+                ts=now_iso(),
+                task_type="query",
+                route_tier="unknown",
+                model="unknown",
+                prompt_tokens=0,
+                completion_tokens=0,
+                total_tokens=0,
+                latency_ms=latency_ms,
+                success=False,
+                error=str(e),
+            )
+        )
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        latency_ms = int((perf_counter() - started) * 1000)
+        ledger.append(
+            RunEvent(
+                ts=now_iso(),
+                task_type="query",
+                route_tier="unknown",
+                model="unknown",
+                prompt_tokens=0,
+                completion_tokens=0,
+                total_tokens=0,
+                latency_ms=latency_ms,
+                success=False,
+                error=str(e),
+            )
+        )
+        raise HTTPException(status_code=503, detail=str(e))
+    return {
+        "status": "ok",
+        "answer": result.answer,
+        "citations": [f"memory/wiki/{s}.md" for s in result.citations],
+        "confidence": result.confidence,
+        "route": result.route,
+        "model": result.model,
+        "tokens": {
+            "prompt": result.prompt_tokens,
+            "completion": result.completion_tokens,
+            "total": result.total_tokens,
+        },
+        "prompt_version": result.prompt_version,
     }
 
 
