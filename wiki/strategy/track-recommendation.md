@@ -14,26 +14,26 @@
 
 ## 적합도 매트릭스
 
-| 평가 축 | T1 Memory | T2 Showrunner | T3 Society | T4 Autopilot | T5 Edge |
-|---|---|---|---|---|---|
-| 개념 스택 정합성 | ★★★★★ | ★☆ | ★★☆ | ★★★☆ | ★☆ |
-| D-7 실현 가능성 | ★★★★☆ | ★★☆ | ★★☆ | ★★★☆ | ★☆ |
-| 심사기준 60%(기술 축) 공략 여지 | ★★★★★ | ★★★☆ | ★★★★☆ | ★★★★☆ | ★★★★☆ |
-| 추가 리스크 | 낮음 | 영상 모델 학습곡선 | 정량 비교 실험 설계 필수 | 도메인 목업 필요 | 물리 디바이스·증빙 |
+| 평가 축                         | T1 Memory | T2 Showrunner      | T3 Society               | T4 Autopilot     | T5 Edge            |
+| ------------------------------- | --------- | ------------------ | ------------------------ | ---------------- | ------------------ |
+| 개념 스택 정합성                | ★★★★★     | ★☆                 | ★★☆                      | ★★★☆             | ★☆                 |
+| D-7 실현 가능성                 | ★★★★☆     | ★★☆                | ★★☆                      | ★★★☆             | ★☆                 |
+| 심사기준 60%(기술 축) 공략 여지 | ★★★★★     | ★★★☆               | ★★★★☆                    | ★★★★☆            | ★★★★☆              |
+| 추가 리스크                     | 낮음      | 영상 모델 학습곡선 | 정량 비교 실험 설계 필수 | 도메인 목업 필요 | 물리 디바이스·증빙 |
 
 ## Track 1 (MemoryAgent) 추천 근거 — 요구사항 1:1 매핑
 
 트랙 1의 공식 심사 포커스 3가지가 보유 개념 스택으로 그대로 커버된다:
 
-| 트랙 1 공식 요구 | 대응 개념 |
-|---|---|
-| ① 효율적 메모리 저장·검색 | **LLM Wiki** (구조화 위키 + index.md) + **Graphify** (지식 그래프 질의) |
-| ② 오래된 정보의 적시 망각 | **LLM Wiki의 Lint 워크플로우** (stale claim·모순·고아 페이지 정리) — 대부분 참가자가 벡터DB TTL 수준에 그칠 영역에서 차별화 |
-| ③ 제한 컨텍스트 내 핵심 기억 회상 | **CodeGraph 패턴** (surgical context: 그래프 1-질의로 정확한 컨텍스트만 주입, 토큰 절약) |
-| (심화) 점점 더 정확한 의사결정 | **Autoresearch 패턴** (회상 정확도를 단일 지표로 메모리 정책 자율 실험·자기개선) |
-| (프로세스) | **AI-DLC**로 개발 자체를 수행 → Presentation 15% + Blog Prize 재료 |
+| 트랙 1 공식 요구                  | 대응 개념                                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| ① 효율적 메모리 저장·검색         | **LLM Wiki** (구조화 위키 + index.md) + **Graphify** (지식 그래프 질의)                                                     |
+| ② 오래된 정보의 적시 망각         | **LLM Wiki의 Lint 워크플로우** (stale claim·모순·고아 페이지 정리) — 대부분 참가자가 벡터DB TTL 수준에 그칠 영역에서 차별화 |
+| ③ 제한 컨텍스트 내 핵심 기억 회상 | **CodeGraph 패턴** (surgical context: 그래프 1-질의로 정확한 컨텍스트만 주입, 토큰 절약)                                    |
+| (심화) 점점 더 정확한 의사결정    | **Autoresearch 패턴** (회상 정확도를 단일 지표로 메모리 정책 자율 실험·자기개선)                                            |
+| (프로세스)                        | **AI-DLC**로 개발 자체를 수행 → Presentation 15% + Blog Prize 재료                                                          |
 
-공식 아이디어 예시 중 *"a personal knowledge base that indexes everything you share and surfaces relevant context proactively"* 와 *"a research assistant that remembers every paper it has read"* 가 정확히 LLM Wiki + Graphify 조합이다.
+공식 아이디어 예시 중 _"a personal knowledge base that indexes everything you share and surfaces relevant context proactively"_ 와 _"a research assistant that remembers every paper it has read"_ 가 정확히 LLM Wiki + Graphify 조합이다.
 
 ## 심사기준 관점 득점 시나리오 (Track 1)
 
@@ -44,7 +44,7 @@
 
 ## 2순위: Track 4 (Autopilot Agent) — 조건부
 
-같은 스택을 "개발자 업무 자동화"로 프레이밍하면 가능: 예) *리포·문서를 자율 ingest→위키 유지→온보딩/코드리뷰 컨텍스트 제공하는 팀 지식 오토파일럿*. 단, HITL 체크포인트·프로덕션 준비성 데모가 추가로 필요해 D-7에는 T1보다 부담이 큼. 
+같은 스택을 "개발자 업무 자동화"로 프레이밍하면 가능: 예) _리포·문서를 자율 ingest→위키 유지→온보딩/코드리뷰 컨텍스트 제공하는 팀 지식 오토파일럿_. 단, HITL 체크포인트·프로덕션 준비성 데모가 추가로 필요해 D-7에는 T1보다 부담이 큼.
 **메모/지식이 '수단'이면 T4, '주제'이면 T1** — 이 프로덕트는 지식 축적 자체가 주제이므로 T1이 자연스럽다.
 
 ## 비추천 사유
@@ -62,5 +62,6 @@
 5. **D-1**: 최종 제출 (마감: 2026-07-10 06:00 KST)
 
 ## 관련 페이지
+
 - [../hackathon/tracks.md](../hackathon/tracks.md) · [../hackathon/judging-and-submission.md](../hackathon/judging-and-submission.md)
 - [../concepts/foundations.md](../concepts/foundations.md)

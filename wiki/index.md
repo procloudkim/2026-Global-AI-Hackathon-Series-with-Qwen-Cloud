@@ -11,20 +11,23 @@
 ## 페이지 목록
 
 ### 해커톤 (hackathon/)
-| 페이지 | 요약 |
-|---|---|
-| [overview.md](hackathon/overview.md) | 개요·일정·상금·참가자격·규정 MECE 정리 |
-| [tracks.md](hackathon/tracks.md) | 5개 트랙 요구사항·평가 포인트 상세 |
-| [judging-and-submission.md](hackathon/judging-and-submission.md) | 심사기준(가중치)·제출 요건 체크리스트 |
+
+| 페이지                                                           | 요약                                   |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| [overview.md](hackathon/overview.md)                             | 개요·일정·상금·참가자격·규정 MECE 정리 |
+| [tracks.md](hackathon/tracks.md)                                 | 5개 트랙 요구사항·평가 포인트 상세     |
+| [judging-and-submission.md](hackathon/judging-and-submission.md) | 심사기준(가중치)·제출 요건 체크리스트  |
 
 ### 기반 개념 (concepts/)
-| 페이지 | 요약 |
-|---|---|
+
+| 페이지                                    | 요약                                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [foundations.md](concepts/foundations.md) | llm-wiki, autoresearch, graphify, codegraph, AI-DLC, 하네스 엔지니어링 — 5+1 기반 개념 및 상호 관계 |
 
 ### 전략 (strategy/)
-| 페이지 | 요약 |
-|---|---|
+
+| 페이지                                                      | 요약                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
 | [track-recommendation.md](strategy/track-recommendation.md) | 트랙 적합도 분석 및 추천 (결론: Track 1 MemoryAgent) |
 
 ## log

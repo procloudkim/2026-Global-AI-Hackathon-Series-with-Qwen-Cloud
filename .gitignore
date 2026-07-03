@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 .codegraph/
 graphify-out/
+QWEN-*.txt
