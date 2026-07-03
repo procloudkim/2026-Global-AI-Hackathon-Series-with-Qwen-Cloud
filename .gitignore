@@ -1,0 +1,7 @@
+# Runtime data (memory store) - populated at runtime, keep samples only
+.env
+__pycache__/
+*.pyc
+.venv/
+.codegraph/
+graphify-out/
