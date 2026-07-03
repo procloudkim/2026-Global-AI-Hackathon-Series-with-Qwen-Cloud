@@ -1,0 +1,11 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+memory
+wiki
+.env
+bench/results.json
+bench/results.md
+

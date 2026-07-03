@@ -20,10 +20,10 @@
 
 ### 기반 개념 (concepts/)
 
-| 페이지                                    | 요약                                                                                                |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [foundations.md](concepts/foundations.md) | llm-wiki, autoresearch, graphify, codegraph, AI-DLC, 하네스 엔지니어링 — 5+1 기반 개념 및 상호 관계 |
-| [token-harness.md](concepts/token-harness.md) | Deep-research 토큰 하네스 보고서 지식화 — RunLedger·정적 prefix·출력계약·A/B 실험 설계 |
+| 페이지                                        | 요약                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [foundations.md](concepts/foundations.md)     | llm-wiki, autoresearch, graphify, codegraph, AI-DLC, 하네스 엔지니어링 — 5+1 기반 개념 및 상호 관계 |
+| [token-harness.md](concepts/token-harness.md) | Deep-research 토큰 하네스 보고서 지식화 — RunLedger·정적 prefix·출력계약·A/B 실험 설계              |
 
 ### 전략 (strategy/)
 
