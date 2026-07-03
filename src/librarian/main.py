@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from . import __version__
+from .forget import run_lint
 from .ingest import ingest_source
 from .llm import Tier, get_router
 from .meter import RunEvent, RunLedger, now_iso
@@ -23,6 +24,10 @@ class IngestRequest(BaseModel):
 class QueryRequest(BaseModel):
     question: str
     top_k: int = 5
+
+
+class LintRequest(BaseModel):
+    apply_archive: bool = True
 
 
 @app.get("/health")
@@ -186,6 +191,69 @@ def query(payload: QueryRequest) -> dict:
             "total": result.total_tokens,
         },
         "prompt_version": result.prompt_version,
+    }
+
+
+@app.post("/lint")
+def lint(payload: LintRequest) -> dict:
+    started = perf_counter()
+    try:
+        result = run_lint(
+            store=store,
+            router=get_router(),
+            apply_archive=payload.apply_archive,
+        )
+        latency_ms = int((perf_counter() - started) * 1000)
+        ledger.append(
+            RunEvent(
+                ts=now_iso(),
+                task_type="lint",
+                route_tier=result.route_tier,
+                model=result.model,
+                prompt_tokens=result.prompt_tokens,
+                completion_tokens=result.completion_tokens,
+                total_tokens=result.total_tokens,
+                latency_ms=latency_ms,
+                success=True,
+            )
+        )
+    except Exception as e:
+        latency_ms = int((perf_counter() - started) * 1000)
+        ledger.append(
+            RunEvent(
+                ts=now_iso(),
+                task_type="lint",
+                route_tier="unknown",
+                model="unknown",
+                prompt_tokens=0,
+                completion_tokens=0,
+                total_tokens=0,
+                latency_ms=latency_ms,
+                success=False,
+                error=str(e),
+            )
+        )
+        raise HTTPException(status_code=503, detail=str(e))
+
+    findings = [
+        {
+            "type": f.finding_type,
+            "page": f.page,
+            "message": f.message,
+            "archived": f.archived,
+        }
+        for f in result.findings
+    ]
+    return {
+        "status": "ok",
+        "findings": findings,
+        "archived_pages": result.archived_pages,
+        "tokens": {
+            "prompt": result.prompt_tokens,
+            "completion": result.completion_tokens,
+            "total": result.total_tokens,
+        },
+        "model": result.model,
     }
 
 
