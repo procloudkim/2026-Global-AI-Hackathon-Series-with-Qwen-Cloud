@@ -113,3 +113,13 @@ stdio 기반. 툴: memory_ingest(source), memory_query(question), memory_lint().
 - ADR-2: 망각 = archive 이동 — 삭제 대비 감사 가능, 데모에서 근거 로그를 보여줄 수 있음.
 - ADR-3: 모델 이원화 — Free Tier 예산 방어 + "성능 최적화" 심사 항목 어필.
 - ADR-4: 파일 기반 저장 — git 히스토리가 곧 기억의 버전 관리 (LLM Wiki 원문 아이디어 계승).
+
+---
+
+## 개정 이력
+
+### [2026-07-03] 토큰 하네스 설계 반영
+
+- ADR-5: meter.py는 계측이 아니라 **RunLedger(원장)** — cost_per_success가 진짜 KPI. 근거: wiki/concepts/token-harness.md
+- ADR-6: 프롬프트 캐시 친화 구조 — 정적 prefix(시스템 정책·출력 계약·스키마)를 앞에 고정, 동적 컨텍스트(페이지 내용·질문)는 suffix. 짧은 프롬프트보다 캐시되는 프롬프트가 저렴
+- 컴포넌트 추가: src/librarian/prompts.py (정적 prefix 레지스트리 + PROMPT_VERSION)

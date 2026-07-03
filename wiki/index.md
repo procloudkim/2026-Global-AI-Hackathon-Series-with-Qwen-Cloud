@@ -23,6 +23,7 @@
 | 페이지                                    | 요약                                                                                                |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [foundations.md](concepts/foundations.md) | llm-wiki, autoresearch, graphify, codegraph, AI-DLC, 하네스 엔지니어링 — 5+1 기반 개념 및 상호 관계 |
+| [token-harness.md](concepts/token-harness.md) | Deep-research 토큰 하네스 보고서 지식화 — RunLedger·정적 prefix·출력계약·A/B 실험 설계 |
 
 ### 전략 (strategy/)
 
@@ -35,3 +36,4 @@
 - `[2026-07-03] ingest | Devpost 메인/rules/resources 페이지, QWEN-해커톤-요건.txt, 기반 개념 5개 리포 수집 → 초기 위키 구축`
 - `[2026-07-03] query | 출전 트랙 추천 → strategy/track-recommendation.md 작성`
 - `[2026-07-03] decision | Track 1 MemoryAgent 확정 — 하네스를 프로덕트로 승격, 목표=수상`
+- `[2026-07-03] ingest | Deep-research-token.md → concepts/token-harness.md 지식화, U2/U4/U8 설계 반영`

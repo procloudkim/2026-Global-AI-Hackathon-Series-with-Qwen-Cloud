@@ -58,3 +58,14 @@ U6은 U4 완료 후 착수 가능 (U5와 병렬)
 ## 컷 라인
 
 D-3 종료 시점에 U7/U8/U9 중 미완성 항목은 컷. U10은 절대 압축 불가.
+
+---
+
+## 개정 이력
+
+### [2026-07-03] Deep-research-token.md 반영 (wiki/concepts/token-harness.md 참조)
+
+- **U2 확장**: meter.py → **RunLedger** (runs.jsonl append-only: model, tier, prompt/completion tokens, latency_ms, task_type, success)
+- **U3/U4 확장**: 프롬프트를 prompts.py로 분리 — 정적 prefix(정책/출력계약) 상수화 + PROMPT_VERSION 태깅, 동적 값은 suffix 주입. LIGHT 호출에 compact JSON 출력 계약 + max_tokens cap
+- **U4 확장**: ModelRouter에 escalate-on-fail 규칙 (LIGHT 실패/저신뢰 시만 HEAVY)
+- **U8 격상**: naive vs Librarian 단순 비교 → 3-실험 A/B 매트릭스 (L-E1 surgical context, L-E2 라우팅, L-E3 출력계약). KPI = cost_per_success (토큰 절감률과 분리 보고)
