@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Librarian — Qwen Cloud 해커톤 프로젝트 One-Pager</title>
+<style>
+  :root{
+    --ink:#1a1d29; --sub:#5a6072; --line:#e3e6ee; --bg:#f7f8fb;
+    --blue:#2b5fd9; --blue-l:#e8effc; --green:#1a9e6e; --green-l:#e4f6ef;
+    --amber:#c47f17; --amber-l:#fdf3e0; --red:#c94040; --red-l:#fbe9e9;
+    --mono:'Consolas','SF Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI','Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);
+       font-size:13px;line-height:1.55;padding:24px;display:flex;justify-content:center}
+  .page{max-width:1060px;width:100%;background:#fff;border:1px solid var(--line);
+        border-radius:10px;padding:34px 40px;box-shadow:0 2px 14px rgba(20,30,60,.07)}
+  header{border-bottom:3px solid var(--blue);padding-bottom:14px;margin-bottom:20px}
+  h1{font-size:22px;letter-spacing:-.3px}
+  h1 .accent{color:var(--blue)}
+  .meta{color:var(--sub);font-size:11.5px;margin-top:4px}
+  h2{font-size:14.5px;margin:26px 0 10px;padding-left:10px;border-left:4px solid var(--blue);
+     text-transform:uppercase;letter-spacing:.4px}
+  h2 .num{color:var(--blue);font-family:var(--mono);margin-right:6px}
+  p{margin-bottom:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .card{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#fcfcfe}
+  .card h3{font-size:12.5px;margin-bottom:6px;color:var(--blue)}
+  .card.green h3{color:var(--green)} .card.amber h3{color:var(--amber)}
+  ul{padding-left:18px;margin-bottom:6px}
+  li{margin-bottom:3px}
+  code{font-family:var(--mono);font-size:11.5px;background:var(--blue-l);
+       padding:1px 5px;border-radius:4px;color:#1e46a8}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--ink);color:#fff;padding:6px 8px;text-align:left;font-weight:600}
+  td{padding:6px 8px;border-bottom:1px solid var(--line)}
+  tr:nth-child(even) td{background:#fafbfd}
+  .pos{color:var(--green);font-weight:700} .neg{color:var(--red);font-weight:700}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;margin-right:4px}
+  .b-blue{background:var(--blue-l);color:var(--blue)} .b-green{background:var(--green-l);color:var(--green)}
+  .b-amber{background:var(--amber-l);color:var(--amber)} .b-red{background:var(--red-l);color:var(--red)}
+  .callout{border-left:4px solid var(--green);background:var(--green-l);padding:10px 14px;
+           border-radius:0 6px 6px 0;margin:10px 0}
+  .callout.warn{border-color:var(--amber);background:var(--amber-l)}
+  svg text{font-family:'Segoe UI','Malgun Gothic',sans-serif}
+  .svgwrap{border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;margin:8px 0}
+  footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--line);
+         color:var(--sub);font-size:11px;display:flex;justify-content:space-between}
+  @media print{body{padding:0;background:#fff}.page{border:none;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1><span class="accent">Librarian</span> — 망각하는 메모리 에이전트: 설계·구현·검증 전 과정 보고서</h1>
+  <div class="meta">2026 Global AI Hackathon Series with Qwen Cloud · Track 1 (MemoryAgent) · 2026-07-03 · 상태: 제출 패키지 완성 (U1–U10 done) · repo: procloudkim/2026-Global-AI-Hackathon-Series-with-Qwen-Cloud</div>
+</header>
+
+<!-- 1. 문제와 전략 -->
+<h2><span class="num">1</span>문제 정의 &amp; 전략 (Why)</h2>
+<div class="grid2">
+  <div class="card">
+    <h3>문제 (Problem)</h3>
+    <p>AI 에이전트 메모리는 <b>append-only</b>다. 낡고 모순된 지식이 누적 → 컨텍스트 오염 + 토큰 비용 폭증. 핵심 결핍은 "기억"이 아니라 <b>"망각(forgetting)"</b>이다.</p>
+  </div>
+  <div class="card green">
+    <h3>전략 (Strategy)</h3>
+    <p>토큰 하네스(harness) 자체를 프로덕트로 승격. 5개 선행 개념을 조합:
+    <b>LLM Wiki</b>(karpathy, 유지보수되는 마크다운 지식) + <b>autoresearch</b>(자동 증류) + <b>graphify</b>(링크 그래프) + <b>codegraph</b>(토큰 절약형 인덱스) + <b>AI-DLC</b>(단위작업 U1–U10 워크플로).</p>
+  </div>
+</div>
+<div class="callout">
+  <b>수상 요건의 계층화 (의사결정 프레임):</b>
+  <span class="badge b-red">L0 Pass/Fail</span> Qwen 사용·오픈소스·3분 영상·마감 준수 —
+  <span class="badge b-blue">L1 득점 60%</span> 기술축: 측정된 토큰 효율 + 재현성 —
+  <span class="badge b-green">L2 차별화</span> 망각 엔진 + 정직한 벤치 리포트 + MCP 가점.
+</div>
+
+<!-- 2. 아키텍처 -->
+<h2><span class="num">2</span>시스템 아키텍처 (What)</h2>
+<div class="svgwrap">
+<svg viewBox="0 0 1000 300" width="100%">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#5a6072"/>
+    </marker>
+  </defs>
+  <!-- Clients -->
+  <rect x="15" y="70" width="150" height="150" rx="8" fill="#f0f3fa" stroke="#c6cede"/>
+  <text x="90" y="92" text-anchor="middle" font-size="12" font-weight="700" fill="#2b5fd9">Clients</text>
+  <rect x="30" y="105" width="120" height="30" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="90" y="124" text-anchor="middle" font-size="11">Web UI / REST</text>
+  <rect x="30" y="145" width="120" height="30" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="90" y="164" text-anchor="middle" font-size="11">MCP Client (IDE 등)</text>
+  <rect x="30" y="185" width="120" height="25" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="90" y="201" text-anchor="middle" font-size="10.5">docker compose up</text>
+
+  <!-- FastAPI -->
+  <rect x="205" y="115" width="120" height="60" rx="8" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/>
+  <text x="265" y="140" text-anchor="middle" font-size="12" font-weight="700">FastAPI</text>
+  <text x="265" y="158" text-anchor="middle" font-size="10" fill="#5a6072">+ MCP Server</text>
+  <line x1="165" y1="145" x2="205" y2="145" stroke="#5a6072" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <!-- Pipelines -->
+  <rect x="365" y="40" width="130" height="42" rx="7" fill="#e4f6ef" stroke="#1a9e6e"/>
+  <text x="430" y="58" text-anchor="middle" font-size="11.5" font-weight="700">Ingest</text>
+  <text x="430" y="73" text-anchor="middle" font-size="9.5" fill="#5a6072">raw → wiki 증류</text>
+  <rect x="365" y="126" width="130" height="42" rx="7" fill="#e4f6ef" stroke="#1a9e6e"/>
+  <text x="430" y="144" text-anchor="middle" font-size="11.5" font-weight="700">Query</text>
+  <text x="430" y="159" text-anchor="middle" font-size="9.5" fill="#5a6072">index-first top-3 + 인용</text>
+  <rect x="365" y="212" width="130" height="42" rx="7" fill="#fdf3e0" stroke="#c47f17" stroke-width="1.5"/>
+  <text x="430" y="230" text-anchor="middle" font-size="11.5" font-weight="700">Forget / Lint ★</text>
+  <text x="430" y="245" text-anchor="middle" font-size="9.5" fill="#5a6072">모순 탐지 → archive</text>
+  <line x1="325" y1="132" x2="365" y2="66" stroke="#5a6072" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="325" y1="145" x2="365" y2="147" stroke="#5a6072" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="325" y1="160" x2="365" y2="228" stroke="#5a6072" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- Memory Store -->
+  <rect x="545" y="30" width="200" height="240" rx="8" fill="#f0f3fa" stroke="#c6cede"/>
+  <text x="645" y="52" text-anchor="middle" font-size="12" font-weight="700" fill="#2b5fd9">Memory Store (markdown)</text>
+  <rect x="560" y="65" width="170" height="30" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="645" y="84" text-anchor="middle" font-size="10.5">raw/ 불변 소스</text>
+  <rect x="560" y="103" width="170" height="30" rx="5" fill="#fff" stroke="#1a9e6e"/>
+  <text x="645" y="122" text-anchor="middle" font-size="10.5">wiki/ + index.md + graph.json</text>
+  <rect x="560" y="141" width="170" height="30" rx="5" fill="#fff" stroke="#c47f17"/>
+  <text x="645" y="160" text-anchor="middle" font-size="10.5">archive/ 망각된 기억 (가역)</text>
+  <rect x="560" y="179" width="170" height="30" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="645" y="198" text-anchor="middle" font-size="10.5">runs.jsonl — RunLedger</text>
+  <rect x="560" y="217" width="170" height="30" rx="5" fill="#fff" stroke="#c6cede"/>
+  <text x="645" y="236" text-anchor="middle" font-size="10.5">frontmatter + 링크 그래프</text>
+  <line x1="495" y1="150" x2="545" y2="150" stroke="#5a6072" stroke-width="1.3" marker-end="url(#ar)"/>
+
+  <!-- Router -->
+  <rect x="795" y="60" width="180" height="80" rx="8" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/>
+  <text x="885" y="84" text-anchor="middle" font-size="12" font-weight="700">Model Router</text>
+  <text x="885" y="103" text-anchor="middle" font-size="10.5">LIGHT: qwen-flash (기본)</text>
+  <text x="885" y="120" text-anchor="middle" font-size="10.5">HEAVY: qwen-plus (승격 시)</text>
+  <rect x="795" y="165" width="180" height="55" rx="8" fill="#fff" stroke="#c6cede"/>
+  <text x="885" y="188" text-anchor="middle" font-size="11" font-weight="700">Qwen / Alibaba Cloud</text>
+  <text x="885" y="206" text-anchor="middle" font-size="10">DashScope OpenAI-호환 API</text>
+  <line x1="745" y1="120" x2="795" y2="105" stroke="#5a6072" stroke-width="1.3" marker-end="url(#ar)"/>
+  <line x1="885" y1="140" x2="885" y2="165" stroke="#5a6072" stroke-width="1.3" marker-end="url(#ar)"/>
+</svg>
+</div>
+<div class="grid3">
+  <div class="card"><h3>토큰 절감 기제 ①</h3>index-first top-3 검색: 전체 위키 스캔 대신 <code>index.md</code> 기반 최소 컨텍스트만 주입.</div>
+  <div class="card"><h3>토큰 절감 기제 ②</h3>small-first 라우팅: qwen-flash 우선, 신뢰도 미달 시에만 qwen-plus로 <b>escalate-on-fail</b>.</div>
+  <div class="card"><h3>토큰 절감 기제 ③</h3>정적 prompt prefix(캐시 적중) + 엄격 JSON 출력 계약(freeform 대비 출력 토큰 절반).</div>
+</div>
+
+<!-- 3. 프로세스 -->
+<h2><span class="num">3</span>개발 프로세스: AI-DLC 단위작업 U1–U10 (How)</h2>
+<div class="svgwrap">
+<svg viewBox="0 0 1000 120" width="100%">
+  <line x1="30" y1="55" x2="970" y2="55" stroke="#c6cede" stroke-width="2"/>
+  <!-- U nodes -->
+  <g font-size="10" text-anchor="middle">
+    <circle cx="70" cy="55" r="17" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/><text x="70" y="59" font-weight="700">U1</text><text x="70" y="90" fill="#5a6072">스캐폴드</text><text x="70" y="103" fill="#5a6072">FastAPI+Router</text>
+    <circle cx="168" cy="55" r="17" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/><text x="168" y="59" font-weight="700">U2</text><text x="168" y="90" fill="#5a6072">MemoryStore</text><text x="168" y="103" fill="#5a6072">+RunLedger</text>
+    <circle cx="266" cy="55" r="17" fill="#e4f6ef" stroke="#1a9e6e" stroke-width="1.5"/><text x="266" y="59" font-weight="700">U3</text><text x="266" y="90" fill="#5a6072">Ingest</text><text x="266" y="103" fill="#5a6072">JSON 계약</text>
+    <circle cx="364" cy="55" r="17" fill="#e4f6ef" stroke="#1a9e6e" stroke-width="1.5"/><text x="364" y="59" font-weight="700">U4</text><text x="364" y="90" fill="#5a6072">Query</text><text x="364" y="103" fill="#5a6072">top-k+인용</text>
+    <circle cx="462" cy="55" r="19" fill="#fdf3e0" stroke="#c47f17" stroke-width="2"/><text x="462" y="59" font-weight="700">U5★</text><text x="462" y="90" fill="#5a6072">Forget/Lint</text><text x="462" y="103" fill="#5a6072">차별화 코어</text>
+    <circle cx="560" cy="55" r="17" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/><text x="560" y="59" font-weight="700">U6</text><text x="560" y="90" fill="#5a6072">Deploy</text><text x="560" y="103" fill="#5a6072">ECS 스크립트</text>
+    <circle cx="658" cy="55" r="17" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/><text x="658" y="59" font-weight="700">U7</text><text x="658" y="90" fill="#5a6072">MCP 서버</text><text x="658" y="103" fill="#5a6072">4개 툴</text>
+    <circle cx="756" cy="55" r="19" fill="#fdf3e0" stroke="#c47f17" stroke-width="2"/><text x="756" y="59" font-weight="700">U8★</text><text x="756" y="90" fill="#5a6072">A/B 벤치</text><text x="756" y="103" fill="#5a6072">증거 생산</text>
+    <circle cx="854" cy="55" r="17" fill="#e8effc" stroke="#2b5fd9" stroke-width="1.5"/><text x="854" y="59" font-weight="700">U9</text><text x="854" y="90" fill="#5a6072">데모 UI</text>
+    <circle cx="945" cy="55" r="17" fill="#e4f6ef" stroke="#1a9e6e" stroke-width="1.5"/><text x="945" y="59" font-weight="700">U10</text><text x="945" y="90" fill="#5a6072">제출 패키지</text><text x="945" y="103" fill="#5a6072">Docker+문서</text>
+  </g>
+  <text x="30" y="25" font-size="11" fill="#5a6072">사전 단계: 해커톤 정보 MECE 지식화(wiki/) → 트랙 선정(Track 1) → AI-DLC 요구·아키텍처 문서(aidlc-docs/) → 구현 → 검증 → 동결(freeze)</text>
+</svg>
+</div>
+
+<!-- 4. 검증 -->
+<h2><span class="num">4</span>검증 결과: A/B 벤치마크 (Evidence)</h2>
+<p><b>방법</b>: 질문 12개 × 3실험, 성공기준 = <i>유효 JSON + 실존 위키 페이지를 가리키는 인용 ≥1</i> (엄격). KPI = <b>tokens_per_success</b> (원시 토큰이 아닌 "성공한 답변당 비용").</p>
+<div class="grid2">
+<div>
+<table>
+  <tr><th>실험</th><th>베이스라인</th><th>tok/success Δ</th><th>성공률</th></tr>
+  <tr><td>L-E1</td><td>HEAVY + 전체 위키 컨텍스트</td><td class="pos">−47.1%</td><td>11/12 vs 6/12</td></tr>
+  <tr><td>L-E2</td><td>HEAVY 전용 (동일 검색)</td><td class="pos">−17.2%</td><td>11/12 vs 7/12</td></tr>
+  <tr><td>L-E3</td><td>LIGHT + freeform (계약 없음)</td><td class="pos">−51.3%</td><td>11/12 vs 12/12*</td></tr>
+</table>
+<p style="font-size:11px;color:var(--sub)">* L-E3 베이스라인 성공은 "비어있지 않은 텍스트"만 요구(인용 검증 불가) — 토큰 2.2배 쓰면서 근거는 0.</p>
+</div>
+<div class="svgwrap" style="margin:0">
+<svg viewBox="0 0 440 170" width="100%">
+  <text x="220" y="16" text-anchor="middle" font-size="11.5" font-weight="700">tokens per success (낮을수록 좋음)</text>
+  <g font-size="10">
+    <!-- L-E1 -->
+    <text x="8" y="45" fill="#5a6072">L-E1</text>
+    <rect x="45" y="32" width="286" height="14" fill="#c94040" opacity=".75"/><text x="336" y="43" fill="#5a6072">1144 (base)</text>
+    <rect x="45" y="49" width="151" height="14" fill="#1a9e6e"/><text x="201" y="60" fill="#1a9e6e" font-weight="700">605 (−47%)</text>
+    <!-- L-E2 -->
+    <text x="8" y="93" fill="#5a6072">L-E2</text>
+    <rect x="45" y="80" width="184" height="14" fill="#c94040" opacity=".75"/><text x="234" y="91" fill="#5a6072">736 (base)</text>
+    <rect x="45" y="97" width="152" height="14" fill="#1a9e6e"/><text x="202" y="108" fill="#1a9e6e" font-weight="700">609 (−17%)</text>
+    <!-- L-E3 -->
+    <text x="8" y="141" fill="#5a6072">L-E3</text>
+    <rect x="45" y="128" width="311" height="14" fill="#c94040" opacity=".75"/><text x="360" y="139" fill="#5a6072">1245 (base)</text>
+    <rect x="45" y="145" width="152" height="14" fill="#1a9e6e"/><text x="202" y="156" fill="#1a9e6e" font-weight="700">606 (−51%)</text>
+  </g>
+</svg>
+</div>
+</div>
+<div class="callout warn">
+  <b>정직한 리포팅 (핵심 학습):</b> L-E2에서 후보의 <b>원시 토큰은 +30%</b> 더 든다 — LIGHT 실패 시 escalate로 호출이 2회가 되기 때문. 그러나 heavy-only는 엄격 계약을 더 자주 실패(7/12)하므로 성공당 비용에선 여전히 −17% 우위. 부정적 수치를 숨기지 않는 것 자체가 "eval 기반 엔지니어링"의 증거이며 심사 전략상 우위다. 원시 토큰 최소화가 아니라 <b>cost_per_success 최소화</b>가 올바른 목적함수.
+</div>
+
+<!-- 5. 산출물 -->
+<h2><span class="num">5</span>산출물 인벤토리 (Deliverables — MECE)</h2>
+<div class="grid3">
+  <div class="card"><h3>① 코드 (src/, tests/)</h3>
+    <ul><li><code>llm.py</code> Qwen 라우터 (증빙 파일)</li><li><code>store.py</code> / <code>meter.py</code> 저장소·원장</li><li><code>ingest / query / forget.py</code> 3 파이프라인</li><li><code>mcp_server.py</code> 툴 4종 (lazy import)</li><li>테스트 9개 전부 통과</li></ul></div>
+  <div class="card green"><h3>② 검증·운영</h3>
+    <ul><li><code>bench/run_ab.py</code> + <code>BENCHMARK.md</code></li><li><code>Dockerfile</code>/<code>compose</code> — E2E 검증 완료</li><li><code>deploy/</code> ECS 스크립트</li><li><code>scripts/preflight.ps1</code> 제출 전 점검</li></ul></div>
+  <div class="card amber"><h3>③ 문서·제출</h3>
+    <ul><li><code>wiki/</code> 해커톤 지식베이스 (LLM Wiki 방식)</li><li><code>aidlc-docs/</code> 요구·U1-U10·ADR 6건</li><li><code>submission/</code> Devpost 템플릿·아키텍처 PNG·3분 영상 스크립트</li></ul></div>
+</div>
+
+<!-- 6. 학습 포인트 -->
+<h2><span class="num">6</span>핵심 학습 포인트 (Lessons)</h2>
+<table>
+  <tr><th style="width:26%">범주</th><th>교훈</th></tr>
+  <tr><td><b>제품 전략</b></td><td>수상 요건을 L0/L1/L2로 계층화하면 "무엇을 하고 무엇을 버릴지"가 명확해진다. Docker는 요구사항이 아니었지만 90% 완료 상태라 "버그 수정 후 동결"이 정답 — 매몰비용이 아니라 재현성 가치로 판단.</td></tr>
+  <tr><td><b>측정 설계</b></td><td>성공기준을 느슨하게 두면(텍스트 존재 여부) 벤치가 무의미해진다. "인용이 실존 페이지를 가리키는가"로 강화하자 결과의 설득력이 오히려 상승. 소논문은 불필요, <b>재현 가능한 벤치 리포트</b>가 적정 수준.</td></tr>
+  <tr><td><b>토큰 공학</b></td><td>절감의 3레버 = 컨텍스트 최소화(index-first) · 모델 라우팅(small-first) · 출력 계약(JSON). 단, 라우팅은 소규모 코퍼스에서 오버헤드 가능 — 코퍼스가 클수록 이득 증가.</td></tr>
+  <tr><td><b>환경 함정</b></td><td>Windows: PowerShell BOM이 LICENSE 감지를 깨뜨림(<code>UTF8Encoding($false)</code>로 해결) · Docker에서 <code>package=false</code> 프로젝트는 <code>ENV PYTHONPATH</code> 필수 · MCP rpds DLL 오류는 lazy import로 회피.</td></tr>
+  <tr><td><b>프로세스</b></td><td>AI-DLC 단위작업(U1–U10)이 진행 추적·동결 시점 판단·커밋 단위를 일관되게 만들었다. "신규 기능 금지 동결 원칙"이 제출 품질을 지킨다.</td></tr>
+</table>
+
+<!-- 7. 잔여 -->
+<h2><span class="num">7</span>잔여 작업 (사람의 몫)</h2>
+<p><span class="badge b-red">필수</span> 3분 영상 녹화·업로드 (<code>submission/VIDEO_SCRIPT.md</code>, 망각 데모 0:55–1:45 필수 장면) &nbsp;
+<span class="badge b-amber">권장</span> ECS 바우처 승인 시 Live URL 배포 (미확보 시 Docker 재현성으로 대체) &nbsp;
+<span class="badge b-blue">제출</span> Devpost 폼 기입 — 마감 2026-07-10 06:00 KST.</p>
+
+<footer>
+  <span>Librarian · Track 1 MemoryAgent · Qwen(qwen-flash/qwen-plus) via DashScope · MIT License</span>
+  <span>Generated 2026-07-03 · 최종 커밋 41af434</span>
+</footer>
+
+</div>
+</body>
+</html>
