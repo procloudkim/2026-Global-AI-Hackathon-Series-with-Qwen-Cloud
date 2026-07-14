@@ -85,6 +85,7 @@ def _run(repo: Path, mode: str) -> subprocess.CompletedProcess[str]:
 
 def _output(result: subprocess.CompletedProcess[str]) -> str:
     rendered = ANSI_CONTROL_SEQUENCE.sub("", result.stdout + result.stderr)
+    rendered = re.sub(r"\s+\|\s+", " ", rendered)
     return " ".join(rendered.split())
 
 
@@ -95,7 +96,7 @@ def test_output_normalizes_powershell_terminal_formatting() -> None:
         stdout="",
         stderr=(
             "\x1b[31;1mrequires a nonblank\x1b[0m\n"
-            "repository-contained path"
+            "     | repository-contained path"
         ),
     )
 
