@@ -163,3 +163,13 @@ def test_deploy_python_helpers_compile_without_execution() -> None:
         "deploy/verify-release-gate.py",
     ):
         compile(read(relative), relative, "exec")
+
+
+def test_host_python_helpers_support_ubuntu_2204_system_python() -> None:
+    for relative in (
+        "deploy/inspect-infrastructure.py",
+        "deploy/finalize-release.py",
+    ):
+        source = read(relative)
+        assert "from datetime import UTC" not in source
+        assert "timezone.utc" in source

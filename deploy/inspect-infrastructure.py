@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -297,7 +297,7 @@ def main() -> int:
     payload = {
         "schema_version": "librarian-infrastructure-readiness/v1",
         "status": status,
-        "observed_at": datetime.now(UTC).isoformat(),
+        "observed_at": datetime.now(timezone.utc).isoformat(),
         "candidate_sha": args.candidate_sha,
         "provider_signal": "alibaba_cloud_dmi" if alibaba_host else "unverified",
         "cloud_approval_receipt_sha256": args.cloud_approval_receipt_sha256,

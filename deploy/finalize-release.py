@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -71,7 +71,7 @@ def main() -> int:
     payload = {
         "schema_version": "librarian-release-finalization/v1",
         "status": "RELEASE_VERIFIED",
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "candidate_sha": args.candidate_sha,
         "deployment_manifest": {
             "path": str(deployment_path),
