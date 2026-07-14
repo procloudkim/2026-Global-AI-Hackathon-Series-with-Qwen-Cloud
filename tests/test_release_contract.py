@@ -54,7 +54,8 @@ def test_release_workflow_is_fail_closed_and_ordered() -> None:
     gate = workflow.index("deploy/verify-release-gate.py")
     deploy_preflight = workflow.index("-Mode deploy")
     deployment = workflow.index("sudo bash /tmp/librarian-deploy-")
-    assert structural < cloud_approval < live < host < gate < deploy_preflight < deployment
+    assert structural < cloud_approval < host < live < gate < deploy_preflight < deployment
+    assert "Inspect approved host before live Qwen spend" in workflow
     assert "proof/Dockerfile.live" in workflow
     assert "evaluator-only/gold.jsonl,dst=" not in workflow
     assert "--max-calls 18" in workflow
@@ -117,6 +118,29 @@ def test_deploy_and_rollback_preserve_memory_and_require_gate_receipt() -> None:
     assert "atomic_link" in deploy and "atomic_link" in rollback
     assert 'rm -rf -- "${MEMORY_ROOT}"' not in combined
     assert "MEMORY_BEFORE" in combined and "MEMORY_AFTER" in combined
+
+
+def test_deploy_builds_non_relocatable_venv_at_final_release_path() -> None:
+    deploy = read("deploy/deploy.sh")
+
+    move_to_release = deploy.index('mv "${STAGING_PATH}" "${RELEASE_PATH}"')
+    sync_at_release = deploy.index(
+        '/usr/local/bin/uv --directory "${RELEASE_PATH}" sync --frozen --no-dev'
+    )
+    assert move_to_release < sync_at_release
+    assert '/usr/local/bin/uv --directory "${STAGING_PATH}"' not in deploy
+    assert '"${RELEASE_PATH}/.venv/bin/python" -c' in deploy
+
+
+def test_failed_candidate_is_not_left_as_current_or_used_as_rollback() -> None:
+    deploy = read("deploy/deploy.sh")
+
+    assert "PREVIOUS_HEALTHY=0" in deploy
+    assert 'if health_matches_sha "${PREVIOUS_SHA}"; then' in deploy
+    assert '&& "${PREVIOUS_HEALTHY}" -eq 1' in deploy
+    assert 'unlink_current_if_target "${RELEASE_PATH}"' in deploy
+    assert 'RELEASE_CREATED=1' in deploy
+    assert 'rm -rf -- "${RELEASE_PATH}"' in deploy
 
 
 def test_setup_runs_service_user_uv_outside_root_home() -> None:

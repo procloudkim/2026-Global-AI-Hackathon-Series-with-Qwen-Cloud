@@ -101,6 +101,7 @@ readonly STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 PREVIOUS_SHA=""
 PREVIOUS_PATH=""
+PREVIOUS_HEALTHY=0
 MEMORY_BEFORE=""
 MEMORY_AFTER=""
 MEMORY_PRE_CANDIDATE=""
@@ -108,6 +109,7 @@ BOOTSTRAP_APPLIED=0
 HEALTH_STATUS="NOT_RUN"
 SWITCHED=0
 SERVICE_STOPPED=0
+RELEASE_CREATED=0
 
 memory_digest() {
   find "${MEMORY_ROOT}" -type f \
@@ -134,13 +136,22 @@ atomic_link() {
   mv -Tf "${temporary}" "${CURRENT_LINK}"
 }
 
-wait_for_health() {
+unlink_current_if_target() {
+  local target="$1"
+  local current_target=""
+  if [[ -L "${CURRENT_LINK}" ]]; then
+    current_target="$(readlink -f "${CURRENT_LINK}" 2>/dev/null || true)"
+    if [[ "${current_target}" == "${target}" ]]; then
+      rm -f -- "${CURRENT_LINK}"
+    fi
+  fi
+}
+
+health_matches_sha() {
   local expected_sha="$1"
-  local attempt
-  for attempt in $(seq 1 30); do
-    if curl --fail --silent --show-error --max-time 3 \
-      "${HEALTH_URL}" -o "${HEALTH_BODY}" 2>/dev/null \
-      && EXPECTED_SHA="${expected_sha}" python3 - "${HEALTH_BODY}" <<'PY'
+  curl --fail --silent --show-error --max-time 3 \
+    "${HEALTH_URL}" -o "${HEALTH_BODY}" 2>/dev/null \
+    && EXPECTED_SHA="${expected_sha}" python3 - "${HEALTH_BODY}" <<'PY'
 import json
 import os
 import sys
@@ -151,7 +162,13 @@ if body.get("status") != "ok":
 if body.get("deployed_sha") != os.environ["EXPECTED_SHA"]:
     raise SystemExit(1)
 PY
-    then
+}
+
+wait_for_health() {
+  local expected_sha="$1"
+  local attempt
+  for attempt in $(seq 1 30); do
+    if health_matches_sha "${expected_sha}"; then
       return 0
     fi
     sleep 2
@@ -258,6 +275,7 @@ on_error() {
   local failure_line="${1:-1}"
   local rollback_ok=0
   local memory_safe=1
+  local current_target=""
   trap - ERR
   set +e
   echo "ERROR: deployment failed at line ${failure_line}; attempting containment" >&2
@@ -273,6 +291,7 @@ on_error() {
   fi
   if [[ ("${SWITCHED}" -eq 1 || "${SERVICE_STOPPED}" -eq 1) \
         && "${memory_safe}" -eq 1 \
+        && "${PREVIOUS_HEALTHY}" -eq 1 \
         && -n "${PREVIOUS_PATH}" && -d "${PREVIOUS_PATH}" ]]; then
     if [[ "${SWITCHED}" -eq 1 ]]; then
       atomic_link "${PREVIOUS_PATH}"
@@ -304,6 +323,18 @@ on_error() {
       HEALTH_STATUS="NOT_RUN"
     fi
     write_manifest "FAILED" "${failure_line}" "${exit_code}"
+  fi
+  if [[ "${SWITCHED}" -eq 1 && "${rollback_ok}" -ne 1 ]]; then
+    unlink_current_if_target "${RELEASE_PATH}"
+  fi
+  if [[ "${RELEASE_CREATED}" -eq 1 && -d "${RELEASE_PATH}" \
+        && "${RELEASE_PATH}" =~ ^${RELEASE_ROOT}/[0-9a-f]{40}$ ]]; then
+    if [[ -L "${CURRENT_LINK}" ]]; then
+      current_target="$(readlink -f "${CURRENT_LINK}" 2>/dev/null || true)"
+    fi
+    if [[ "${current_target}" != "${RELEASE_PATH}" ]]; then
+      rm -rf -- "${RELEASE_PATH}"
+    fi
   fi
   if [[ -d "${STAGING_PATH}" && "${STAGING_PATH}" == "${RELEASE_ROOT}/."*".staging."* ]]; then
     rm -rf -- "${STAGING_PATH}"
@@ -359,6 +390,9 @@ if [[ -L "${CURRENT_LINK}" ]]; then
   PREVIOUS_PATH="$(readlink -f "${CURRENT_LINK}")"
   if [[ "${PREVIOUS_PATH}" =~ ^${RELEASE_ROOT}/([0-9a-f]{40})$ ]]; then
     PREVIOUS_SHA="${BASH_REMATCH[1]}"
+    if health_matches_sha "${PREVIOUS_SHA}"; then
+      PREVIOUS_HEALTHY=1
+    fi
   else
     echo "ERROR: current symlink points outside the managed release root" >&2
     false
@@ -382,21 +416,22 @@ else
   install -m 0644 "${RELEASE_GATE_RECEIPT}" "${STAGING_PATH}/.release-gate.json"
   printf '%s\n' "${EXPECTED_RELEASE_GATE_SHA256}" >"${STAGING_PATH}/.release-gate-sha256"
   chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${STAGING_PATH}"
+  ln -s "${MEMORY_ROOT}" "${STAGING_PATH}/memory"
+  mv "${STAGING_PATH}" "${RELEASE_PATH}"
+  RELEASE_CREATED=1
   runuser -u "${SERVICE_USER}" -- env \
     UV_PYTHON_INSTALL_DIR="${PYTHON_ROOT}" \
-    /usr/local/bin/uv --directory "${STAGING_PATH}" sync --frozen --no-dev --python 3.12
+    /usr/local/bin/uv --directory "${RELEASE_PATH}" sync --frozen --no-dev --python 3.12
   install -d -m 0700 -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" "${SMOKE_MEMORY_ROOT}"
   runuser -u "${SERVICE_USER}" -- env \
-    PYTHONPATH="${STAGING_PATH}/src" \
+    PYTHONPATH="${RELEASE_PATH}/src" \
     LIBRARIAN_MEMORY_ROOT="${SMOKE_MEMORY_ROOT}" \
-    RELEASE_WORKING_DIRECTORY="${STAGING_PATH}" \
-    "${STAGING_PATH}/.venv/bin/python" -c \
+    RELEASE_WORKING_DIRECTORY="${RELEASE_PATH}" \
+    "${RELEASE_PATH}/.venv/bin/python" -c \
     'import os; os.chdir(os.environ["RELEASE_WORKING_DIRECTORY"]); import librarian; import librarian.main'
   rm -rf -- "${SMOKE_MEMORY_ROOT}"
-  ln -s "${MEMORY_ROOT}" "${STAGING_PATH}/memory"
-  chown -R root:root "${STAGING_PATH}"
-  chmod -R a-w "${STAGING_PATH}"
-  mv "${STAGING_PATH}" "${RELEASE_PATH}"
+  chown -R root:root "${RELEASE_PATH}"
+  chmod -R a-w "${RELEASE_PATH}"
 fi
 
 # Stop the old process before the canonical-state digest and symlink swap. The

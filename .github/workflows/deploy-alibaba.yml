@@ -132,6 +132,56 @@ jobs:
             --contract submission/hackathon-contract.json \
             --evidence-manifest submission/evidence-manifest.json
 
+      - name: Configure pinned SSH host identity before live spend
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ALIBABA_SSH_PRIVATE_KEY }}
+          SSH_HOST_KEY: ${{ secrets.ALIBABA_SSH_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "${SSH_HOST}" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "${SSH_USER}" =~ ^[A-Za-z0-9._-]+$ ]]
+          [[ "${SSH_PORT}" =~ ^[0-9]{1,5}$ ]]
+          test -n "${SSH_PRIVATE_KEY}" && test -n "${SSH_HOST_KEY}"
+          install -d -m 0700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/librarian_deploy"
+          printf '%s\n' "${SSH_HOST_KEY}" >"${HOME}/.ssh/known_hosts"
+          chmod 0600 "${HOME}/.ssh/librarian_deploy" "${HOME}/.ssh/known_hosts"
+
+      - name: Inspect approved host before live Qwen spend
+        id: infrastructure
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          CLOUD_APPROVAL_SHA256: ${{ inputs.cloud_approval_receipt_sha256 }}
+          APPROVAL_TICKET_SHA256: ${{ steps.candidate.outputs.approval_ticket_sha256 }}
+          DEPLOYMENT_TARGET_SHA256: ${{ steps.deployment_target.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          INSPECTOR="/tmp/librarian-inspect-${CANDIDATE_SHA}.py"
+          RECEIPT="/var/lib/librarian/deployments/infrastructure/${CANDIDATE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          scp -i "${HOME}/.ssh/librarian_deploy" -P "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            deploy/inspect-infrastructure.py "${REMOTE}:${INSPECTOR}"
+          set +e
+          INSPECTION_OUTPUT="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo python3 ${INSPECTOR} \
+              --candidate-sha ${CANDIDATE_SHA} \
+              --cloud-approval-receipt-sha256 ${CLOUD_APPROVAL_SHA256} \
+              --approval-ticket-sha256 ${APPROVAL_TICKET_SHA256} \
+              --expected-target-sha256 ${DEPLOYMENT_TARGET_SHA256} \
+              --output ${RECEIPT}" 2>&1)"
+          INSPECTION_STATUS=$?
+          set -e
+          printf '%s\n' "${INSPECTION_OUTPUT}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo cat ${RECEIPT}" >"${RUNNER_TEMP}/infrastructure-readiness.json"
+          echo "remote_path=${RECEIPT}" >>"${GITHUB_OUTPUT}"
+          exit "${INSPECTION_STATUS}"
+
       - name: Build and run capped no-gold live Qwen container
         id: live_gate
         shell: bash
@@ -223,56 +273,6 @@ jobs:
           rm -f "${ARCHIVE_TAR}"
           echo "path=${ARCHIVE}" >>"${GITHUB_OUTPUT}"
           echo "sha256=${ARCHIVE_SHA256}" >>"${GITHUB_OUTPUT}"
-
-      - name: Configure pinned SSH host identity
-        shell: bash
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.ALIBABA_SSH_PRIVATE_KEY }}
-          SSH_HOST_KEY: ${{ secrets.ALIBABA_SSH_HOST_KEY }}
-        run: |
-          set -euo pipefail
-          [[ "${SSH_HOST}" =~ ^[A-Za-z0-9.-]+$ ]]
-          [[ "${SSH_USER}" =~ ^[A-Za-z0-9._-]+$ ]]
-          [[ "${SSH_PORT}" =~ ^[0-9]{1,5}$ ]]
-          test -n "${SSH_PRIVATE_KEY}" && test -n "${SSH_HOST_KEY}"
-          install -d -m 0700 "${HOME}/.ssh"
-          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/librarian_deploy"
-          printf '%s\n' "${SSH_HOST_KEY}" >"${HOME}/.ssh/known_hosts"
-          chmod 0600 "${HOME}/.ssh/librarian_deploy" "${HOME}/.ssh/known_hosts"
-
-      - name: Inspect approved host and create masked readiness receipt
-        id: infrastructure
-        shell: bash
-        env:
-          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
-          CLOUD_APPROVAL_SHA256: ${{ inputs.cloud_approval_receipt_sha256 }}
-          APPROVAL_TICKET_SHA256: ${{ steps.candidate.outputs.approval_ticket_sha256 }}
-          DEPLOYMENT_TARGET_SHA256: ${{ steps.deployment_target.outputs.sha256 }}
-        run: |
-          set -euo pipefail
-          REMOTE="${SSH_USER}@${SSH_HOST}"
-          INSPECTOR="/tmp/librarian-inspect-${CANDIDATE_SHA}.py"
-          RECEIPT="/var/lib/librarian/deployments/infrastructure/${CANDIDATE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
-          scp -i "${HOME}/.ssh/librarian_deploy" -P "${SSH_PORT}" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            deploy/inspect-infrastructure.py "${REMOTE}:${INSPECTOR}"
-          set +e
-          INSPECTION_OUTPUT="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
-            "sudo python3 ${INSPECTOR} \
-              --candidate-sha ${CANDIDATE_SHA} \
-              --cloud-approval-receipt-sha256 ${CLOUD_APPROVAL_SHA256} \
-              --approval-ticket-sha256 ${APPROVAL_TICKET_SHA256} \
-              --expected-target-sha256 ${DEPLOYMENT_TARGET_SHA256} \
-              --output ${RECEIPT}" 2>&1)"
-          INSPECTION_STATUS=$?
-          set -e
-          printf '%s\n' "${INSPECTION_OUTPUT}"
-          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
-            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
-            "sudo cat ${RECEIPT}" >"${RUNNER_TEMP}/infrastructure-readiness.json"
-          echo "remote_path=${RECEIPT}" >>"${GITHUB_OUTPUT}"
-          exit "${INSPECTION_STATUS}"
 
       - name: Bind live and infrastructure receipts to the candidate
         id: release_gate

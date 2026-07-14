@@ -1,0 +1,64 @@
+{
+  "schema_version": "librarian-alibaba-mcp-service/v1",
+  "service_name": "librarian-ops",
+  "edition": "custom",
+  "authentication": {
+    "mode": "oauth",
+    "provider": "alibaba-cloud-official",
+    "static_access_key_allowed": false
+  },
+  "account_scope": "current_account_only",
+  "network": {
+    "client": "local_interactive_codex",
+    "private_link_allowed": false
+  },
+  "api_tools": [
+    "Ecs-20140526-DescribeCloudAssistantStatus",
+    "Ecs-20140526-DescribeInstances",
+    "Ecs-20140526-DescribeInvocationResults"
+  ],
+  "terraform_tools": [
+    {
+      "name": "diagnose_librarian_service",
+      "source": "infra/alibaba/mcp/diagnose-librarian-service.tf",
+      "async": true,
+      "destroy_policy": "ALWAYS",
+      "allowed_resource_types": [
+        "alicloud_ecs_command",
+        "alicloud_ecs_invocation"
+      ]
+    }
+  ],
+  "execution_contract": {
+    "region": "ap-southeast-1",
+    "target_count": 1,
+    "command_timeout_seconds": 30,
+    "outer_timeout_seconds": 60,
+    "repeat_mode": "Once",
+    "qwen_calls": 0,
+    "service_state_changes": 0,
+    "application_file_writes": 0,
+    "max_unapproved_spend_usd": 0
+  },
+  "forbidden_api_fragments": [
+    "CreateInstance",
+    "Delete",
+    "Release",
+    "StartInstance",
+    "StopInstance",
+    "RebootInstance"
+  ],
+  "forbidden_resource_types": [
+    "alicloud_instance",
+    "alicloud_disk",
+    "alicloud_vpc",
+    "alicloud_vswitch",
+    "alicloud_security_group",
+    "alicloud_eip_address",
+    "alicloud_nat_gateway",
+    "alicloud_slb_load_balancer",
+    "alicloud_alb_load_balancer",
+    "alicloud_oss_bucket",
+    "alicloud_nas_file_system"
+  ]
+}
