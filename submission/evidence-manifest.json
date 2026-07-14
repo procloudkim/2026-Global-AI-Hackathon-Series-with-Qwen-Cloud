@@ -1,13 +1,13 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-14T20:13:00+09:00",
+  "generated_at": "2026-07-14T20:22:00+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
   },
   "candidate": {
     "status": "frozen",
-    "baseline_head_sha": "44d4e755b20e3806e724f40ced2cd12daf552f5c",
+    "baseline_head_sha": "d46ae14c6a6f06eeaaf24b6716b809a361248175",
     "commit_sha": null,
     "tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
     "note": "The source and evaluator tree is frozen. The exact commit SHA is supplied by the release workflow and recorded in post-deployment evidence; it cannot be embedded in its own commit without a self-reference."
@@ -61,6 +61,7 @@
     "submission/HACKATHON_CONTRACT.md",
     "submission/DEVPOST_TEMPLATE.md",
     "submission/account-credit-audit.json",
+    "submission/evidence/cloud-approval-receipt.json",
     "submission/evidence/cloud-runtime-attestation.json",
     "submission/evidence-manifest.json",
     "scripts/preflight.ps1",
@@ -188,13 +189,13 @@
       "id": "cloud_approval_receipt",
       "requirement_id": "alibaba_cloud_backend",
       "kind": "masked_approval_receipt",
-      "status": "pending_external",
-      "path": null,
+      "status": "verified",
+      "path": "submission/evidence/cloud-approval-receipt.json",
       "expected_path": "submission/evidence/cloud-approval-receipt.json",
-      "value": null,
-      "sha256": null,
+      "value": "APPROVED_ZERO_COST",
+      "sha256": "4ac5e2491ae429e0e736f17471561486b63b33fab8ca83a38cadbbf9d48c70a5",
       "required_by": ["deploy", "submit"],
-      "note": "Created only after explicit user approval and read-only verification of Compute eligibility, billing controls, runtime retention, security group, public IP, persistent disk, and Workbench access. Account identifiers and coupon codes stay masked or omitted."
+      "note": "Candidate-tree, approval-ticket, and deployment-target hashes bind the zero-cost ECS trial approval. Alerts remain honestly console_blocked; scheduled release of the instance and system disk is the required hard containment control. Account identifiers and coupon codes are masked or omitted."
     },
     {
       "id": "english_description",

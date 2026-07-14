@@ -149,7 +149,7 @@ def test_submit_rejects_verified_file_without_digest(tmp_path: Path) -> None:
     artifact_id = "workbench_deployment_screenshot"
     repo = _fixture_repo(tmp_path, artifact_id)
     evidence = repo / "submission" / "evidence" / "workbench.jpg"
-    evidence.parent.mkdir()
+    evidence.parent.mkdir(exist_ok=True)
     evidence.write_bytes(b"candidate-bound workbench proof")
     manifest, artifact = _artifact(repo, artifact_id)
     artifact.update(

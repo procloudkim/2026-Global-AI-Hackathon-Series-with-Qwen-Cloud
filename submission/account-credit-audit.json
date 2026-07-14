@@ -118,9 +118,10 @@
     "persistent_disk": "verified_present",
     "workbench_access": "verified",
     "ssh_key_access": "verified",
-    "security_group": "pending_add_http_80_and_https_443_after_console_reauthentication",
+    "security_group": "verified_only_ssh_22_http_80_https_443_inbound",
+    "public_tls": "verified_reachable_before_application_deploy",
     "application_deployed": false,
-    "public_judge_url": "pending"
+    "public_judge_url": "configured_masked_pending_application_deploy"
   },
   "cost_contract": {
     "max_unapproved_spend_usd": 0,

@@ -1,0 +1,34 @@
+{
+  "schema_version": "librarian-cloud-approval/v2",
+  "status": "APPROVED",
+  "approval_status": "APPROVED_ZERO_COST",
+  "approved_at": "2026-07-14T20:20:00+09:00",
+  "approval_expires_at": "2026-07-16T06:00:00+09:00",
+  "resource_retention_through": "2026-08-18T06:00:00+09:00",
+  "scheduled_release_at": "2026-09-30T23:00:02+08:00",
+  "candidate_tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
+  "approval_ticket_sha256": "6d03dad4a512a3a373ae77bc53ad5432f0985fa235f2972e4815b35af823887c",
+  "deployment_target_sha256": "ed1f92496bb6e71311b90d7547ef2d9aa6b7a0d347b3f0518e25d64c004faa5c",
+  "runtime": "ecs_trial",
+  "compute_eligibility": "VERIFIED",
+  "max_unapproved_spend_usd": 0,
+  "approved_max_spend_usd": 0,
+  "controls": {
+    "benefit_or_billing_scope_verified": true,
+    "overage_disabled_or_hard_capped": true,
+    "automatic_renewal_disabled": true,
+    "budget_alert_status": "console_blocked",
+    "spending_alert_status": "console_blocked",
+    "scheduled_release_configured": true,
+    "persistent_storage_verified": true,
+    "public_ip_verified": true,
+    "security_group_reviewed": true,
+    "workbench_access_verified": true,
+    "resource_creation_explicitly_approved": true
+  },
+  "masked_evidence_sha256": [
+    "5064dbd7cb53244e9cc76613f4007e58cc45f7c2e47f2ab5781a72f971549624",
+    "a95441e937241fb05a5d10fd2d60d89c4d86d2cdd1bc00ac9024f308e9a645ca"
+  ],
+  "account_identifiers": "masked_or_omitted"
+}

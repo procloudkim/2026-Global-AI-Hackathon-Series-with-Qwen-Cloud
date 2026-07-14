@@ -21,7 +21,8 @@
     "workbench": "verified",
     "pinned_ssh_key": "verified",
     "public_ip": "verified_masked",
-    "security_group": "pending_http_https_rules_after_console_reauthentication"
+    "security_group": "verified_only_ssh_22_http_80_https_443_inbound",
+    "public_tls": "verified_reachable"
   },
   "spend_containment": {
     "max_unapproved_spend_usd": 0,
@@ -34,7 +35,8 @@
   },
   "deployment": {
     "host_setup": "verified",
-    "services_enabled_not_started": true,
+    "application_service_enabled_not_started": true,
+    "caddy_service_active": true,
     "application_deployed": false,
     "exact_sha": null
   },
