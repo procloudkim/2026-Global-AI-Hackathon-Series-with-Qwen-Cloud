@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-14T18:29:33+09:00",
+  "generated_at": "2026-07-14T18:49:45+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
@@ -83,35 +83,35 @@
       "id": "public_repository",
       "requirement_id": "public_repository",
       "kind": "url",
-      "status": "blocked_external",
+      "status": "verified",
       "path": null,
       "value": "https://github.com/procloudkim/2026-Global-AI-Hackathon-Series-with-Qwen-Cloud",
       "sha256": null,
       "required_by": ["submit"],
-      "note": "The repository was observed as private on 2026-07-14. Visibility change requires separate user approval."
+      "note": "GitHub API verified the repository as public with main as its default branch on 2026-07-14."
     },
     {
       "id": "open_source_license",
       "requirement_id": "open_source_license",
       "kind": "file_and_public_detection",
-      "status": "verified_local",
+      "status": "verified",
       "path": "LICENSE",
       "value": "MIT",
       "sha256": "acff61ce6ca0032443f013abdc6c8ca6f116ec8d01bb7b955a661b1407de7b1f",
       "required_by": ["submit"],
-      "note": "The local MIT license exists; public GitHub detection must be reverified after visibility approval."
+      "note": "The local MIT license digest is candidate-bound and GitHub API reports SPDX identifier MIT."
     },
     {
       "id": "alibaba_code_proof",
       "requirement_id": "alibaba_code_proof",
       "kind": "url_and_file",
-      "status": "blocked_external",
+      "status": "verified",
       "path": "src/librarian/llm.py",
       "value": "https://github.com/procloudkim/2026-Global-AI-Hackathon-Series-with-Qwen-Cloud/blob/main/src/librarian/llm.py",
-      "sha256": null,
-      "hash_status": "pending_candidate_freeze",
+      "sha256": "1e0307e47e1341c7c02c26ef0a42612ce36b79f5b422ce58f9e39d9d866f516f",
+      "hash_status": "candidate_bound",
       "required_by": ["submit"],
-      "note": "The code path exists locally, but the URL is not judge-accessible while the repository is private."
+      "note": "GitHub API verified the public main-branch URL and the local file digest is bound to the frozen candidate tree."
     },
     {
       "id": "architecture_diagram",
