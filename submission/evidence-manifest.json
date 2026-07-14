@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-14T18:49:45+09:00",
+  "generated_at": "2026-07-14T20:13:00+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
   },
   "candidate": {
     "status": "frozen",
-    "baseline_head_sha": "0a1ed35a2c5a270756efba204ec3803def13e1b6",
+    "baseline_head_sha": "44d4e755b20e3806e724f40ced2cd12daf552f5c",
     "commit_sha": null,
-    "tree_sha256": "9b1f976c8a16e4191bc67d58dcbafcaca82c18a5d6c213f70e550ab5bcc7974a",
+    "tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
     "note": "The source and evaluator tree is frozen. The exact commit SHA is supplied by the release workflow and recorded in post-deployment evidence; it cannot be embedded in its own commit without a self-reference."
   },
   "status_definitions": {
@@ -61,6 +61,7 @@
     "submission/HACKATHON_CONTRACT.md",
     "submission/DEVPOST_TEMPLATE.md",
     "submission/account-credit-audit.json",
+    "submission/evidence/cloud-runtime-attestation.json",
     "submission/evidence-manifest.json",
     "scripts/preflight.ps1",
     "tests/test_release_contract.py",

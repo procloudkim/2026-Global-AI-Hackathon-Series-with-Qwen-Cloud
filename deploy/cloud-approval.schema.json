@@ -11,6 +11,7 @@
     "approved_at",
     "approval_expires_at",
     "resource_retention_through",
+    "scheduled_release_at",
     "candidate_tree_sha256",
     "approval_ticket_sha256",
     "deployment_target_sha256",
@@ -23,7 +24,7 @@
     "account_identifiers"
   ],
   "properties": {
-    "schema_version": { "const": "librarian-cloud-approval/v1" },
+    "schema_version": { "const": "librarian-cloud-approval/v2" },
     "status": { "const": "APPROVED" },
     "approval_status": {
       "enum": ["APPROVED_ZERO_COST", "APPROVED_PAID_WITH_CEILING"]
@@ -31,6 +32,11 @@
     "approved_at": { "type": "string", "format": "date-time" },
     "approval_expires_at": { "type": "string", "format": "date-time" },
     "resource_retention_through": { "type": "string", "format": "date-time" },
+    "scheduled_release_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Account-console scheduled release time for the runtime and its system disk."
+    },
     "candidate_tree_sha256": { "$ref": "#/$defs/sha256" },
     "approval_ticket_sha256": { "$ref": "#/$defs/sha256" },
     "deployment_target_sha256": {
@@ -57,8 +63,9 @@
         "benefit_or_billing_scope_verified",
         "overage_disabled_or_hard_capped",
         "automatic_renewal_disabled",
-        "budget_alert_configured",
-        "spending_alert_configured",
+        "budget_alert_status",
+        "spending_alert_status",
+        "scheduled_release_configured",
         "persistent_storage_verified",
         "public_ip_verified",
         "security_group_reviewed",
@@ -69,8 +76,15 @@
         "benefit_or_billing_scope_verified": { "const": true },
         "overage_disabled_or_hard_capped": { "const": true },
         "automatic_renewal_disabled": { "const": true },
-        "budget_alert_configured": { "const": true },
-        "spending_alert_configured": { "const": true },
+        "budget_alert_status": {
+          "enum": ["configured", "console_blocked"],
+          "description": "Alerts are advisory. console_blocked is permitted only with the required scheduled-release hard cap."
+        },
+        "spending_alert_status": {
+          "enum": ["configured", "console_blocked"],
+          "description": "Alerts are advisory. console_blocked is permitted only with the required scheduled-release hard cap."
+        },
+        "scheduled_release_configured": { "const": true },
         "persistent_storage_verified": { "const": true },
         "public_ip_verified": { "const": true },
         "security_group_reviewed": { "const": true },

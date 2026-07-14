@@ -1,0 +1,42 @@
+{
+  "schema_version": "librarian-masked-cloud-runtime-attestation/v1",
+  "observed_at": "2026-07-14T20:10:00+09:00",
+  "account_identifiers": "masked_or_omitted",
+  "resource_identifiers": "masked_or_omitted",
+  "runtime": "ecs_trial",
+  "region": "Singapore",
+  "compute": {
+    "vcpu": 2,
+    "memory_gib": 4,
+    "instance_family": "economy e",
+    "displayed_hourly_price_usd": 0.046,
+    "trial_hourly_credit_cap_usd": 0.25
+  },
+  "storage": {
+    "system_disk": "100 GiB ESSD Entry",
+    "persistent_path_verified_over_ssh": "/var/lib/librarian/memory",
+    "scheduled_release_includes_system_disk": true
+  },
+  "access": {
+    "workbench": "verified",
+    "pinned_ssh_key": "verified",
+    "public_ip": "verified_masked",
+    "security_group": "pending_http_https_rules_after_console_reauthentication"
+  },
+  "spend_containment": {
+    "max_unapproved_spend_usd": 0,
+    "qwen_free_quota_only": true,
+    "coupon_used": false,
+    "scheduled_release_configured": true,
+    "scheduled_release_at": "2026-09-30T23:00:02+08:00",
+    "budget_alert_status": "console_blocked",
+    "spending_alert_status": "console_blocked"
+  },
+  "deployment": {
+    "host_setup": "verified",
+    "services_enabled_not_started": true,
+    "application_deployed": false,
+    "exact_sha": null
+  },
+  "evidence_boundary": "Masked structured attestation derived from the logged-in console and pinned SSH checks. No account number, resource ID, IP address, key, coupon code, or credential is stored."
+}

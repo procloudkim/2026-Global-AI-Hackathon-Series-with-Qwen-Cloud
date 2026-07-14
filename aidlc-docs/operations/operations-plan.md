@@ -164,8 +164,12 @@ before choosing the target.
   receipts or command output.
 - Qwen console: reverify `Free quota only` immediately before every approved
   live gate. Load balancers use `/health`, never `/health/qwen`.
-- Alibaba billing: create budget/spending alerts and disable renewal/overage
-  before resource activation. If either cannot be guaranteed, stop.
+- Alibaba billing: configure budget/spending alerts when the account console is
+  operable, but treat them as advisory notifications rather than spend stops.
+  Record a blocked alert surface as `console_blocked`; never claim it is
+  configured. A zero-cost approval then requires a separately verified hard
+  containment control, currently the account-console scheduled release of the
+  instance and system disk after judging and before the trial window ends.
 - Public endpoint: HTTPS, Basic Auth, request-size cap, application rate limit,
   and only required security-group ports.
 

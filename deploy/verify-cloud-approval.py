@@ -34,14 +34,20 @@ REQUIRED_CONTROLS = {
     "benefit_or_billing_scope_verified",
     "overage_disabled_or_hard_capped",
     "automatic_renewal_disabled",
-    "budget_alert_configured",
-    "spending_alert_configured",
+    "budget_alert_status",
+    "spending_alert_status",
+    "scheduled_release_configured",
     "persistent_storage_verified",
     "public_ip_verified",
     "security_group_reviewed",
     "workbench_access_verified",
     "resource_creation_explicitly_approved",
 }
+BOOLEAN_CONTROLS = REQUIRED_CONTROLS - {
+    "budget_alert_status",
+    "spending_alert_status",
+}
+ALERT_STATUSES = {"configured", "console_blocked"}
 ALLOWED_RUNTIMES = {
     "ecs_trial",
     "sas_trial",
@@ -180,7 +186,7 @@ def main() -> int:
     contract = load(contract_path)
     manifest = load(manifest_path)
     reject_sensitive_keys(receipt)
-    require(receipt.get("schema_version") == "librarian-cloud-approval/v1", "unsupported cloud approval schema")
+    require(receipt.get("schema_version") == "librarian-cloud-approval/v2", "unsupported cloud approval schema")
     require(receipt.get("status") == "APPROVED", "cloud operation is not approved")
     approval_status = receipt.get("approval_status")
     require(approval_status in {"APPROVED_ZERO_COST", "APPROVED_PAID_WITH_CEILING"}, "invalid cost approval status")
@@ -197,18 +203,33 @@ def main() -> int:
 
     controls = receipt.get("controls") or {}
     require(set(controls) == REQUIRED_CONTROLS, "cloud approval controls are incomplete or contain unknown fields")
-    require(all(controls.get(key) is True for key in REQUIRED_CONTROLS), "one or more cloud controls are not verified")
+    require(all(controls.get(key) is True for key in BOOLEAN_CONTROLS), "one or more cloud controls are not verified")
+    budget_alert_status = controls.get("budget_alert_status")
+    spending_alert_status = controls.get("spending_alert_status")
+    require(budget_alert_status in ALERT_STATUSES, "budget alert status is invalid")
+    require(spending_alert_status in ALERT_STATUSES, "spending alert status is invalid")
+    if "console_blocked" in {budget_alert_status, spending_alert_status}:
+        require(
+            controls.get("scheduled_release_configured") is True
+            and controls.get("overage_disabled_or_hard_capped") is True,
+            "console-blocked alerts require a scheduled-release hard cap",
+        )
     evidence = receipt.get("masked_evidence_sha256") or []
     require(bool(evidence) and all(DIGEST_RE.fullmatch(str(item)) for item in evidence), "masked console evidence digests are missing")
 
     approved_at = datetime.fromisoformat(str(receipt["approved_at"]))
     expires_at = datetime.fromisoformat(str(receipt["approval_expires_at"]))
     retention = datetime.fromisoformat(str(receipt["resource_retention_through"]))
+    scheduled_release = datetime.fromisoformat(str(receipt["scheduled_release_at"]))
     now = datetime.now(UTC)
-    require(approved_at.tzinfo is not None and expires_at.tzinfo is not None and retention.tzinfo is not None, "approval timestamps need offsets")
+    require(
+        all(value.tzinfo is not None for value in (approved_at, expires_at, retention, scheduled_release)),
+        "approval timestamps need offsets",
+    )
     require(approved_at <= now <= expires_at, "cloud approval is not currently valid")
     judging_end = datetime.fromisoformat(str(contract["deadlines"]["judging"]["end_utc"]).replace("Z", "+00:00"))
     require(retention >= judging_end, "approved runtime retention does not cover judging")
+    require(scheduled_release >= retention, "scheduled release precedes the approved retention window")
 
     tree_sha256 = candidate_tree_hash(Path.cwd())
     require(receipt.get("candidate_tree_sha256") == tree_sha256, "cloud approval belongs to another candidate tree")

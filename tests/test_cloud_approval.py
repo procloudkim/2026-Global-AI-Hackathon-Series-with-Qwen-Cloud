@@ -17,8 +17,9 @@ CONTROLS = {
     "benefit_or_billing_scope_verified": True,
     "overage_disabled_or_hard_capped": True,
     "automatic_renewal_disabled": True,
-    "budget_alert_configured": True,
-    "spending_alert_configured": True,
+    "budget_alert_status": "console_blocked",
+    "spending_alert_status": "console_blocked",
+    "scheduled_release_configured": True,
     "persistent_storage_verified": True,
     "public_ip_verified": True,
     "security_group_reviewed": True,
@@ -54,12 +55,13 @@ def build_fixture(tmp_path: Path) -> tuple[Path, Path, Path, str, str, str]:
     ticket_digest = hashlib.sha256(b"approved-ticket-42").hexdigest()
     target_digest = deployment_target_digest()
     receipt = {
-        "schema_version": "librarian-cloud-approval/v1",
+        "schema_version": "librarian-cloud-approval/v2",
         "status": "APPROVED",
         "approval_status": "APPROVED_ZERO_COST",
         "approved_at": (now - timedelta(minutes=5)).isoformat(),
         "approval_expires_at": (now + timedelta(days=2)).isoformat(),
         "resource_retention_through": (now + timedelta(days=60)).isoformat(),
+        "scheduled_release_at": (now + timedelta(days=75)).isoformat(),
         "candidate_tree_sha256": candidate_tree_hash(ROOT),
         "approval_ticket_sha256": ticket_digest,
         "deployment_target_sha256": target_digest,
@@ -162,6 +164,21 @@ def test_cloud_approval_rejects_another_deployment_target(tmp_path: Path) -> Non
     result = run_verifier(receipt, contract, manifest, digest, ticket, wrong_target)
     assert result.returncode == 2
     assert "another deployment target" in result.stderr
+
+
+def test_console_blocked_alerts_require_scheduled_release_hard_cap(tmp_path: Path) -> None:
+    receipt, contract, manifest, _, ticket, target = build_fixture(tmp_path)
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    payload["controls"]["scheduled_release_configured"] = False
+    write_json(receipt, payload)
+    digest = hashlib.sha256(receipt.read_bytes()).hexdigest()
+    manifest_payload = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_payload["artifacts"][0]["sha256"] = digest
+    write_json(manifest, manifest_payload)
+
+    result = run_verifier(receipt, contract, manifest, digest, ticket, target)
+    assert result.returncode == 2
+    assert "cloud controls are not verified" in result.stderr
 
 
 def test_target_digest_is_deterministic_and_opaque() -> None:
