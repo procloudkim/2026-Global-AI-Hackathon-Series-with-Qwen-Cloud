@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-14T14:11:45+09:00",
+  "generated_at": "2026-07-14T18:29:33+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
   },
   "candidate": {
     "status": "frozen",
-    "baseline_head_sha": "f539c07f227fce0d73cfc973f3a4fbef0b507a53",
+    "baseline_head_sha": "0a1ed35a2c5a270756efba204ec3803def13e1b6",
     "commit_sha": null,
-    "tree_sha256": "eab643768dd72ad37f4bf139c1334cf64019d7d4be6822d8d8838da254accdf7",
+    "tree_sha256": "9b1f976c8a16e4191bc67d58dcbafcaca82c18a5d6c213f70e550ab5bcc7974a",
     "note": "The source and evaluator tree is frozen. The exact commit SHA is supplied by the release workflow and recorded in post-deployment evidence; it cannot be embedded in its own commit without a self-reference."
   },
   "status_definitions": {

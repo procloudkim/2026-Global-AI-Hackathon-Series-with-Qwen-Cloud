@@ -981,7 +981,7 @@ def evaluate_outputs(
         metrics_by_repeat[str(repeat)][policy_id] = _aggregate(rows)
 
     policy = load_json(policy_path)
-    gates = policy["promotion_gates"]
+    gates = policy["repository_diagnostic_gates"]
     factory_receipt = run_manifest.get("candidate_factory")
     candidate_execution = run_manifest.get("candidate_execution")
     if lane in _PRODUCTION_LANES:

@@ -1,4 +1,9 @@
-"""Materialize deterministic dev or secret-seeded holdout artifacts."""
+"""Materialize deterministic repository-owned diagnostic artifacts.
+
+Neither split is independent promotion evidence.  The holdout option changes
+values through a secret seed but deliberately retains the repository-owned
+collection recipe, so its manifest is always diagnostic-only.
+"""
 from __future__ import annotations
 
 import argparse
@@ -83,6 +88,13 @@ def materialize(
         "harness_version": HARNESS_VERSION,
         "created_at": utc_now(),
         "split": split,
+        "evidence_role": (
+            "public_dev_regression"
+            if split == "dev"
+            else "same_builder_diagnostic_only"
+        ),
+        "promotion_eligible": False,
+        "collection_provenance": "repository_scenario_builders_v1",
         "scenario_count": len(cases),
         "variants_per_type": variants,
         "seed_commitment": seed_commitment(actual_seed),

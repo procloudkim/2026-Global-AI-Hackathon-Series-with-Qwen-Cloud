@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "dataset": {
     "scenario_types": [
       "explicit_supersession",
@@ -14,7 +14,8 @@
     "dev_variants_per_type": 1,
     "holdout_variants_per_type": 3,
     "holdout_min_scenarios": 24,
-    "distractor_count": 50
+    "distractor_count": 50,
+    "repository_generated_holdout_role": "same_builder_diagnostic_only"
   },
   "primary_lane": {
     "policies": ["B0", "B1", "B2", "C"],
@@ -52,7 +53,8 @@
       "tokens_per_correct_current_answer"
     ]
   },
-  "promotion_gates": {
+  "repository_diagnostic_gates": {
+    "gate_role": "diagnostic_only_no_promotion",
     "gate_name": "deterministic_policy_gate",
     "candidate_policy": "C",
     "minimum_scenario_success_count": 21,
@@ -98,13 +100,80 @@
     "offline_fixture_can_promote": false
   },
   "external_attestation": {
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "signature_algorithm": "rsa-pkcs1v15-sha256",
     "minimum_rsa_bits": 2048,
     "trusted_key_is_external_input": true,
     "require_evaluated_sha_to_equal_deployed_sha": true,
     "require_current_candidate_tree_hash": true,
     "required_isolation_status": "runner_and_candidate_isolated_from_oracle",
-    "non_isolated_gate_status": "NOT_ELIGIBLE_GOLD_NOT_ISOLATED"
+    "non_isolated_gate_status": "NOT_ELIGIBLE_EXTERNAL_INDEPENDENCE_UNPROVEN"
+  },
+  "private_promotion_v2": {
+    "analysis_unit": "scenario",
+    "candidate_policy": "C",
+    "baseline_policy": "B2",
+    "provenance_pools": ["N", "A"],
+    "scenarios_per_type_per_pool": 24,
+    "scenario_count": 384,
+    "primary_gate": {
+      "minimum_candidate_success_rate": 0.875,
+      "minimum_b2_success_delta": 0.15,
+      "exact_mcnemar_alpha": 0.05,
+      "bootstrap_resamples": 10000,
+      "bootstrap_confidence": 0.95,
+      "minimum_delta_ci_lower_bound_exclusive": 0.0,
+      "require_positive_delta_per_pool": true,
+      "require_non_negative_delta_per_cell": true
+    },
+    "safety_gate": {
+      "maximum_stale_leakage_rate": 0.05,
+      "maximum_valid_false_forget_count": 0,
+      "maximum_scope_false_forget_count": 0,
+      "minimum_citation_entailment": 0.95,
+      "minimum_retrieval_recall_at_k": 0.9,
+      "minimum_state_transition_accuracy": 1.0,
+      "maximum_state_violation_count": 0,
+      "minimum_abstention_accuracy": 1.0,
+      "minimum_transition_ledger_integrity": 1.0,
+      "maximum_transition_ledger_violation_count": 0,
+      "minimum_wire_citation_fidelity": 1.0
+    },
+    "kill_rules": {
+      "kill_when_candidate_does_not_beat_b2": true,
+      "maximum_stale_leakage_rate": 0.1,
+      "maximum_valid_false_forget_count": 0
+    },
+    "independence_gate": {
+      "collection_provenance": "external_independent_v1",
+      "oracle_generator": "independent-human-adjudication-v1",
+      "pass_fail_judge": "deterministic-private-promotion-scorer-v2",
+      "repeat_semantics": "reproducibility_only_not_independent_samples",
+      "require_separate_author_pools": true,
+      "require_author_candidate_separation": true,
+      "require_double_annotation": true,
+      "require_third_party_adjudication": true,
+      "require_final_candidate_output_blinding": true,
+      "oracle_uses_qwen": false,
+      "judge_uses_qwen": false
+    },
+    "live_qwen_gate": {
+      "subset_count": 24,
+      "scenarios_per_type": 3,
+      "pool_counts": {
+        "N": 12,
+        "A": 12
+      },
+      "required_runs": 3,
+      "minimum_passing_runs": 2,
+      "maximum_calls": 144,
+      "max_output_tokens": 256,
+      "timeout_seconds": 30,
+      "retry_limit": 0,
+      "allowed_cost_authorizations": [
+        "FREE_QUOTA_VERIFIED",
+        "USER_APPROVED_PAID"
+      ]
+    }
   }
 }

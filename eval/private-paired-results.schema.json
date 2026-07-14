@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://librarian.example/schemas/private-paired-results-v2.json",
+  "title": "Librarian private paired scenario result",
+  "description": "One evaluator-private B2/C outcome. Raw source, gold, seed, and expected answer fields are forbidden by omission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "scenario_type",
+    "provenance_pool",
+    "B2",
+    "C"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "scenario_id": {"type": "string", "minLength": 1},
+    "scenario_type": {
+      "enum": [
+        "explicit_supersession",
+        "future_effective",
+        "correction_rollback",
+        "scope_coexistence",
+        "unresolved_conflict",
+        "non_numeric_change",
+        "distractor_retrieval",
+        "duplicate_restore"
+      ]
+    },
+    "provenance_pool": {"enum": ["N", "A"]},
+    "B2": {"$ref": "#/$defs/outcome"},
+    "C": {"$ref": "#/$defs/outcome"}
+  },
+  "$defs": {
+    "nonNegativeInteger": {"type": "integer", "minimum": 0},
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer_correct",
+        "citation_correct",
+        "stale_absent_answer",
+        "stale_absent_context",
+        "unrelated_preserved",
+        "valid_false_forget_count",
+        "scope_false_forget_count",
+        "citation_entailed_count",
+        "citation_count",
+        "retrieval_hit_count",
+        "retrieval_required_count",
+        "state_correct_count",
+        "state_total_count",
+        "state_violation_count",
+        "abstention_correct_count",
+        "abstention_total_count",
+        "ledger_valid_count",
+        "ledger_total_count",
+        "ledger_violation_count",
+        "wire_citation_correct_count",
+        "wire_citation_total_count"
+      ],
+      "properties": {
+        "answer_correct": {"type": "boolean"},
+        "citation_correct": {"type": "boolean"},
+        "stale_absent_answer": {"type": "boolean"},
+        "stale_absent_context": {"type": "boolean"},
+        "unrelated_preserved": {"type": "boolean"},
+        "valid_false_forget_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "scope_false_forget_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "citation_entailed_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "citation_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "retrieval_hit_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "retrieval_required_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state_correct_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "state_total_count": {"type": "integer", "minimum": 1},
+        "state_violation_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "abstention_correct_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "abstention_total_count": {"type": "integer", "minimum": 1},
+        "ledger_valid_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "ledger_total_count": {"type": "integer", "minimum": 1},
+        "ledger_violation_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "wire_citation_correct_count": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "wire_citation_total_count": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

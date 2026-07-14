@@ -1,8 +1,9 @@
-"""Verify a public, signed private-holdout promotion attestation.
+"""Verify a public, signed independent private-holdout v2 attestation.
 
-The private evaluator owns oracle rows and the HOLDOUT_SEED.  The public
-repository receives only aggregate metrics, artifact digests, isolation claims,
-and a detached RSA signature from a pre-trusted independent evaluator.
+The public repository receives aggregate paired statistics, artifact digests,
+role-separation claims, a bounded live-Qwen receipt, and a detached RSA
+signature from a pre-trusted evaluator.  Repository-generated holdouts and
+deterministic repeat counts can never satisfy this contract.
 """
 from __future__ import annotations
 
@@ -26,11 +27,15 @@ from .contracts import (
     load_json,
     stable_hash,
 )
-from .evaluate import _kill_findings, _production_comparison_for_repeat
+from .private_promotion import (
+    derive_private_promotion_decision,
+    promotion_binding_sha256,
+    validate_private_aggregate,
+)
 
 
 ATTESTATION_KIND = "librarian.private-holdout-promotion-attestation"
-ATTESTATION_SCHEMA_VERSION = "1.0"
+ATTESTATION_SCHEMA_VERSION = "2.0"
 SIGNATURE_ALGORITHM = "rsa-pkcs1v15-sha256"
 
 _HEX_64 = re.compile(r"^[0-9a-f]{64}$")
@@ -60,8 +65,9 @@ class AttestationVerification:
     gate_status: str
     promotion_status: str
     eligible: bool
-    passing_repeats: int
-    required_passing_repeats: int
+    scenario_count: int
+    b2_success_delta: float
+    exact_mcnemar_p: float
     candidate_git_sha: str
     candidate_tree_sha256: str
     policy_sha256: str
@@ -192,60 +198,6 @@ def _verify_rsa_signature(
     return f"sha256:{hashlib.sha256(blob).hexdigest()}"
 
 
-def derive_repeat_decision(
-    metrics: dict[str, dict[str, Any]], policy: dict[str, Any]
-) -> dict[str, Any]:
-    """Apply the existing production comparison gates and kill rules."""
-
-    decision = _production_comparison_for_repeat(metrics, policy["promotion_gates"])
-    kill_findings = _kill_findings(metrics, policy["kill_rules"])
-    candidate = metrics.get("C", {})
-    if int(candidate.get("transition_ledger_violation_count", 0)):
-        kill_findings.append("transition_ledger_integrity_violation")
-    decision["kill_findings"] = kill_findings
-    if kill_findings:
-        decision["passed"] = False
-        decision["kill_rule_veto"] = True
-    return decision
-
-
-def _derive_overall_decision(
-    repeat_decisions: dict[str, dict[str, Any]], *, isolated: bool
-) -> dict[str, Any]:
-    eligible_repeats = sum(
-        bool(decision.get("eligible")) for decision in repeat_decisions.values()
-    )
-    passing_repeats = sum(
-        bool(decision.get("passed")) for decision in repeat_decisions.values()
-    )
-    kill_findings = sorted(
-        {
-            str(finding)
-            for decision in repeat_decisions.values()
-            for finding in decision.get("kill_findings", [])
-        }
-    )
-    if not isolated:
-        gate_status = "NOT_ELIGIBLE_GOLD_NOT_ISOLATED"
-        promotion_status = "NOT_ELIGIBLE"
-    elif passing_repeats >= 2:
-        gate_status = "PRIVATE_HOLDOUT_PROMOTION_PASS"
-        promotion_status = "PROMOTE"
-    elif kill_findings:
-        gate_status = "PRIVATE_HOLDOUT_KILL"
-        promotion_status = "KILL"
-    else:
-        gate_status = "PRIVATE_HOLDOUT_GATE_FAIL"
-        promotion_status = "HOLD"
-    return {
-        "gate_status": gate_status,
-        "promotion_status": promotion_status,
-        "eligible_repeats": eligible_repeats,
-        "passing_repeats": passing_repeats,
-        "kill_findings": kill_findings,
-    }
-
-
 def _git_head(repository_root: Path) -> str:
     completed = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -257,6 +209,224 @@ def _git_head(repository_root: Path) -> str:
     return completed.stdout.strip().lower()
 
 
+def _require_boolean(value: Any, location: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"{location} must be a boolean")
+    return value
+
+
+def _require_non_negative_int(value: Any, location: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ValueError(f"{location} must be a non-negative integer")
+    return value
+
+
+def _validate_boundary(boundary: Any, policy: dict[str, Any]) -> bool:
+    value = _require_object(boundary, "boundary")
+    required = {
+        "split",
+        "scenario_count",
+        "analysis_unit",
+        "collection_provenance",
+        "author_pools_separate",
+        "authors_separate_from_candidate_team",
+        "gold_double_annotated",
+        "third_party_adjudication",
+        "final_candidate_outputs_hidden_during_collection",
+        "intermediate_results_withheld_until_completion",
+        "runner_process_isolated_from_oracle",
+        "candidate_process_isolated_from_oracle",
+        "evaluator_process_separate_from_runner",
+        "oracle_generator",
+        "oracle_uses_qwen",
+        "pass_fail_judge",
+        "judge_uses_qwen",
+        "private_material_published",
+        "repeat_semantics",
+    }
+    _require_exact_keys(value, required, "boundary")
+    config = policy["private_promotion_v2"]
+    independence = config["independence_gate"]
+    if value["split"] != "external_private_holdout":
+        raise ValueError("attestation must describe an external private holdout")
+    if value["scenario_count"] != int(config["scenario_count"]):
+        raise ValueError("boundary scenario_count does not match private promotion policy")
+    if value["analysis_unit"] != config["analysis_unit"]:
+        raise ValueError("boundary analysis_unit must be scenario")
+    for field in (
+        "author_pools_separate",
+        "authors_separate_from_candidate_team",
+        "gold_double_annotated",
+        "third_party_adjudication",
+        "final_candidate_outputs_hidden_during_collection",
+        "intermediate_results_withheld_until_completion",
+        "runner_process_isolated_from_oracle",
+        "candidate_process_isolated_from_oracle",
+        "evaluator_process_separate_from_runner",
+        "oracle_uses_qwen",
+        "judge_uses_qwen",
+        "private_material_published",
+    ):
+        _require_boolean(value[field], f"boundary.{field}")
+    if value["oracle_uses_qwen"] is not False:
+        raise ValueError("Qwen must not generate private holdout truth")
+    if value["judge_uses_qwen"] is not False:
+        raise ValueError("Qwen must not act as the pass/fail judge")
+    if value["private_material_published"] is not False:
+        raise ValueError("private seed/gold material must not be published")
+
+    expected_values = {
+        "collection_provenance": independence["collection_provenance"],
+        "oracle_generator": independence["oracle_generator"],
+        "pass_fail_judge": independence["pass_fail_judge"],
+        "repeat_semantics": independence["repeat_semantics"],
+    }
+    required_true = (
+        "author_pools_separate",
+        "authors_separate_from_candidate_team",
+        "gold_double_annotated",
+        "third_party_adjudication",
+        "final_candidate_outputs_hidden_during_collection",
+        "intermediate_results_withheld_until_completion",
+        "runner_process_isolated_from_oracle",
+        "candidate_process_isolated_from_oracle",
+        "evaluator_process_separate_from_runner",
+    )
+    return all(value[field] is True for field in required_true) and all(
+        value[field] == expected for field, expected in expected_values.items()
+    )
+
+
+def _validate_live_qwen(
+    live_qwen: Any, policy: dict[str, Any], artifacts: dict[str, Any]
+) -> bool:
+    value = _require_object(live_qwen, "live_qwen")
+    required = {
+        "subset_count",
+        "type_counts",
+        "pool_counts",
+        "required_runs",
+        "minimum_passing_runs",
+        "passing_runs",
+        "run_gate_results",
+        "actual_calls",
+        "maximum_calls",
+        "max_output_tokens",
+        "timeout_seconds",
+        "retry_limit",
+        "model_id",
+        "prompt_sha256",
+        "shared_model_prompt_conditions",
+        "answer_model_is_qwen",
+        "oracle_uses_qwen",
+        "judge_uses_qwen",
+        "cost_authorization",
+        "raw_responses_sha256",
+        "usage_receipt_sha256",
+    }
+    _require_exact_keys(value, required, "live_qwen")
+    config = policy["private_promotion_v2"]["live_qwen_gate"]
+    scenario_types = tuple(map(str, policy["dataset"]["scenario_types"]))
+    expected_subset = int(config["subset_count"])
+    if value["subset_count"] != expected_subset:
+        raise ValueError("live_qwen subset_count does not match policy")
+
+    type_counts = _require_object(value["type_counts"], "live_qwen.type_counts")
+    if set(type_counts) != set(scenario_types):
+        raise ValueError("live_qwen type_counts does not cover the frozen scenario types")
+    for scenario_type in scenario_types:
+        if type_counts[scenario_type] != int(config["scenarios_per_type"]):
+            raise ValueError("live_qwen type_counts does not match policy")
+    if sum(type_counts.values()) != expected_subset:
+        raise ValueError("live_qwen type_counts does not sum to subset_count")
+
+    expected_pools = config["pool_counts"]
+    pool_counts = _require_object(value["pool_counts"], "live_qwen.pool_counts")
+    if set(pool_counts) != set(expected_pools):
+        raise ValueError("live_qwen pool_counts does not match policy")
+    for pool, count in expected_pools.items():
+        if pool_counts[pool] != int(count):
+            raise ValueError("live_qwen pool_counts does not match policy")
+    if sum(pool_counts.values()) != expected_subset:
+        raise ValueError("live_qwen pool_counts does not sum to subset_count")
+
+    required_runs = int(config["required_runs"])
+    minimum_passing = int(config["minimum_passing_runs"])
+    if value["required_runs"] != required_runs:
+        raise ValueError("live_qwen required_runs does not match policy")
+    if value["minimum_passing_runs"] != minimum_passing:
+        raise ValueError("live_qwen minimum_passing_runs does not match policy")
+    results = value["run_gate_results"]
+    if (
+        not isinstance(results, list)
+        or len(results) != required_runs
+        or any(not isinstance(result, bool) for result in results)
+    ):
+        raise ValueError("live_qwen run_gate_results must contain three booleans")
+    passing_runs = _require_non_negative_int(
+        value["passing_runs"], "live_qwen.passing_runs"
+    )
+    if passing_runs != sum(results):
+        raise ValueError("live_qwen passing_runs is inconsistent with run_gate_results")
+
+    for field in (
+        "actual_calls",
+        "maximum_calls",
+        "max_output_tokens",
+        "timeout_seconds",
+        "retry_limit",
+    ):
+        _require_non_negative_int(value[field], f"live_qwen.{field}")
+    if value["maximum_calls"] != int(config["maximum_calls"]):
+        raise ValueError("live_qwen maximum_calls does not match policy")
+    if value["actual_calls"] > value["maximum_calls"]:
+        raise ValueError("live_qwen actual_calls exceeds the capped budget")
+    if value["max_output_tokens"] > int(config["max_output_tokens"]):
+        raise ValueError("live_qwen max_output_tokens exceeds policy")
+    if value["max_output_tokens"] == 0:
+        raise ValueError("live_qwen max_output_tokens must be positive")
+    if value["timeout_seconds"] > int(config["timeout_seconds"]):
+        raise ValueError("live_qwen timeout exceeds policy")
+    if value["timeout_seconds"] == 0:
+        raise ValueError("live_qwen timeout_seconds must be positive")
+    if value["retry_limit"] != int(config["retry_limit"]):
+        raise ValueError("live_qwen retry_limit does not match policy")
+    if not isinstance(value["model_id"], str) or not value["model_id"].strip():
+        raise ValueError("live_qwen model_id must be non-empty")
+    for field in (
+        "prompt_sha256",
+        "raw_responses_sha256",
+        "usage_receipt_sha256",
+    ):
+        _require_sha256(value[field], f"live_qwen.{field}")
+    if value["raw_responses_sha256"] != artifacts["raw_provider_responses_sha256"]:
+        raise ValueError("live_qwen raw response hash does not match artifacts")
+    if value["usage_receipt_sha256"] != artifacts["usage_receipt_sha256"]:
+        raise ValueError("live_qwen usage receipt hash does not match artifacts")
+    for field in (
+        "shared_model_prompt_conditions",
+        "answer_model_is_qwen",
+        "oracle_uses_qwen",
+        "judge_uses_qwen",
+    ):
+        _require_boolean(value[field], f"live_qwen.{field}")
+    if value["oracle_uses_qwen"] is not False or value["judge_uses_qwen"] is not False:
+        raise ValueError("Qwen must not create truth or judge the private holdout")
+    minimum_completed_calls = passing_runs * expected_subset * 2
+    if value["actual_calls"] < minimum_completed_calls:
+        raise ValueError(
+            "live_qwen actual_calls cannot support the claimed passing runs"
+        )
+
+    return bool(
+        passing_runs >= minimum_passing
+        and value["actual_calls"] > 0
+        and value["shared_model_prompt_conditions"] is True
+        and value["answer_model_is_qwen"] is True
+        and value["cost_authorization"] in config["allowed_cost_authorizations"]
+    )
+
+
 def verify_attestation(
     attestation: dict[str, Any],
     *,
@@ -265,14 +435,20 @@ def verify_attestation(
     trusted_public_key: str,
     expected_deployed_sha: str,
     expected_dataset_manifest_sha256: str,
-    expected_attestor: str | None = None,
+    expected_attestor: str,
 ) -> AttestationVerification:
-    """Fail closed unless a signed public receipt reproduces the policy decision."""
+    """Fail closed unless a v2 signed receipt reproduces every public decision."""
 
     _assert_public_safe(attestation)
     root = Path(repository_root).resolve()
     policy_file = Path(policy_path).resolve()
     top = _require_object(attestation, "attestation")
+    if top.get("schema_version") != ATTESTATION_SCHEMA_VERSION:
+        if top.get("schema_version") == "1.0":
+            raise ValueError(
+                "legacy private holdout attestation v1 is disabled and cannot promote"
+            )
+        raise ValueError("unsupported attestation schema_version")
     _require_exact_keys(
         top,
         {
@@ -283,18 +459,19 @@ def verify_attestation(
             "candidate",
             "artifacts",
             "boundary",
-            "repeats",
+            "aggregate",
+            "live_qwen",
             "decision",
             "signature",
         },
         "attestation",
     )
-    if top["schema_version"] != ATTESTATION_SCHEMA_VERSION:
-        raise ValueError("unsupported attestation schema_version")
     if top["kind"] != ATTESTATION_KIND:
         raise ValueError("attestation kind is invalid")
     try:
-        created_at = datetime.fromisoformat(str(top["created_at"]).replace("Z", "+00:00"))
+        created_at = datetime.fromisoformat(
+            str(top["created_at"]).replace("Z", "+00:00")
+        )
     except ValueError as exc:
         raise ValueError("attestation created_at must be an ISO-8601 timestamp") from exc
     if created_at.tzinfo is None:
@@ -303,14 +480,28 @@ def verify_attestation(
     attestor = _require_object(top["attestor"], "attestor")
     _require_exact_keys(
         attestor,
-        {"identity", "independent_evaluator", "signature_key_id"},
+        {
+            "identity",
+            "independent_evaluator",
+            "implementation_owner",
+            "case_author",
+            "signature_key_id",
+        },
         "attestor",
     )
     if not isinstance(attestor["identity"], str) or not attestor["identity"].strip():
         raise ValueError("attestor identity must be non-empty")
-    if attestor["independent_evaluator"] is not True:
-        raise ValueError("attestor must be independent from the candidate team")
-    if expected_attestor is not None and attestor["identity"] != expected_attestor:
+    if (
+        attestor["independent_evaluator"] is not True
+        or attestor["implementation_owner"] is not False
+        or attestor["case_author"] is not False
+    ):
+        raise ValueError(
+            "attestor must be independent from implementation and case authoring"
+        )
+    if not isinstance(expected_attestor, str) or not expected_attestor.strip():
+        raise ValueError("expected_attestor must identify a pre-trusted evaluator")
+    if attestor["identity"] != expected_attestor:
         raise ValueError("attestor identity does not match the trusted identity")
 
     signature = _require_object(top["signature"], "signature")
@@ -325,10 +516,26 @@ def verify_attestation(
     if attestor["signature_key_id"] != verified_key_id:
         raise ValueError("attestor signature_key_id does not match the trusted key")
 
+    policy = load_json(policy_file)
+    if policy.get("schema_version") != "2.0":
+        raise ValueError("private promotion requires policy schema_version 2.0")
+    config = policy["private_promotion_v2"]
+
     candidate = _require_object(top["candidate"], "candidate")
     _require_exact_keys(
         candidate,
-        {"evaluated_git_sha", "deployed_git_sha", "tree_sha256"},
+        {
+            "evaluated_git_sha",
+            "deployed_git_sha",
+            "tree_sha256",
+            "b2_implementation_sha256",
+            "c_implementation_sha256",
+            "answer_contract_sha256",
+            "qwen_model_id",
+            "qwen_prompt_sha256",
+            "top_k",
+            "context_budget",
+        },
         "candidate",
     )
     evaluated_sha = _require_git_sha(
@@ -350,15 +557,42 @@ def verify_attestation(
     if current_tree != recorded_tree:
         raise ValueError("candidate implementation changed after holdout evaluation")
 
+    implementation_files = {
+        "b2_implementation_sha256": root / "eval" / "baselines.py",
+        "c_implementation_sha256": root / "src" / "librarian" / "eval_adapter.py",
+        "answer_contract_sha256": root / "eval" / "contracts.py",
+    }
+    for field, path in implementation_files.items():
+        recorded_hash = _require_sha256(candidate[field], f"candidate.{field}")
+        if not path.is_file() or file_sha256(path) != recorded_hash:
+            raise ValueError(f"candidate.{field} does not match current source")
+    if not isinstance(candidate["qwen_model_id"], str) or not candidate[
+        "qwen_model_id"
+    ].strip():
+        raise ValueError("candidate.qwen_model_id must be non-empty")
+    _require_sha256(candidate["qwen_prompt_sha256"], "candidate.qwen_prompt_sha256")
+    shared = policy["primary_lane"]["shared_conditions"]
+    if (
+        candidate["top_k"] != int(shared["top_k"])
+        or candidate["context_budget"] != int(shared["context_budget"])
+    ):
+        raise ValueError("candidate retrieval conditions do not match policy")
+
     artifacts = _require_object(top["artifacts"], "artifacts")
     _require_exact_keys(
         artifacts,
         {
             "policy_sha256",
+            "protocol_sha256",
+            "annotation_guide_sha256",
+            "role_separation_manifest_sha256",
             "dataset_manifest_sha256",
             "runner_inputs_sha256",
-            "outputs_sha256",
+            "paired_results_sha256",
             "aggregate_metrics_sha256",
+            "raw_provider_responses_sha256",
+            "usage_receipt_sha256",
+            "bootstrap_samples_sha256",
         },
         "artifacts",
     )
@@ -374,110 +608,44 @@ def verify_attestation(
     if artifacts["dataset_manifest_sha256"] != expected_dataset_hash:
         raise ValueError("dataset manifest hash does not match the frozen holdout receipt")
 
-    boundary = _require_object(top["boundary"], "boundary")
-    _require_exact_keys(
-        boundary,
-        {
-            "split",
-            "scenario_count",
-            "runner_process_isolated_from_oracle",
-            "candidate_process_isolated_from_oracle",
-            "evaluator_process_separate_from_runner",
-            "oracle_generator",
-            "oracle_uses_qwen",
-            "pass_fail_judge",
-            "judge_uses_qwen",
-            "private_material_published",
-        },
-        "boundary",
-    )
-    if boundary["split"] != "holdout":
-        raise ValueError("attestation must describe a private holdout split")
-    scenario_count = boundary["scenario_count"]
-    if not isinstance(scenario_count, int) or isinstance(scenario_count, bool):
-        raise ValueError("boundary.scenario_count must be an integer")
-    policy = load_json(policy_file)
-    expected_scenario_count = (
-        len(policy["dataset"]["scenario_types"])
-        * int(policy["dataset"]["holdout_variants_per_type"])
-    )
-    if scenario_count != expected_scenario_count:
-        raise ValueError(
-            "private holdout must contain exactly the frozen scenario matrix"
-        )
-    if boundary["oracle_generator"] != policy["leakage_controls"]["gold_generator"]:
-        raise ValueError("oracle generator does not match policy")
-    if boundary["oracle_uses_qwen"] is not False:
-        raise ValueError("Qwen must not generate private holdout truth")
-    if boundary["pass_fail_judge"] != "deterministic-policy-evaluator-v1":
-        raise ValueError("pass/fail judge is not the deterministic evaluator")
-    if boundary["judge_uses_qwen"] is not False:
-        raise ValueError("Qwen must not act as the pass/fail judge")
-    if boundary["private_material_published"] is not False:
-        raise ValueError("private seed/gold material must not be published")
-    for field in (
-        "runner_process_isolated_from_oracle",
-        "candidate_process_isolated_from_oracle",
-        "evaluator_process_separate_from_runner",
-    ):
-        if not isinstance(boundary[field], bool):
-            raise ValueError(f"boundary.{field} must be a boolean")
-    isolated = all(
-        boundary[field]
-        for field in (
-            "runner_process_isolated_from_oracle",
-            "candidate_process_isolated_from_oracle",
-            "evaluator_process_separate_from_runner",
-        )
-    )
-
-    repeats = _require_object(top["repeats"], "repeats")
-    _require_exact_keys(
-        repeats,
-        {"required", "minimum_passing", "metrics_by_repeat", "decisions"},
-        "repeats",
-    )
-    gates = policy["promotion_gates"]
-    required_repeats = int(gates["required_repeats"])
-    minimum_passing = int(gates["minimum_passing_repeats"])
-    if repeats["required"] != required_repeats or repeats["minimum_passing"] != minimum_passing:
-        raise ValueError("repeat contract does not match promotion policy")
-    if required_repeats != 3 or minimum_passing != 2:
-        raise ValueError("external attestation requires the frozen 2-of-3 policy")
-    metrics_by_repeat = _require_object(
-        repeats["metrics_by_repeat"], "repeats.metrics_by_repeat"
-    )
-    decisions = _require_object(repeats["decisions"], "repeats.decisions")
-    expected_repeat_keys = {str(index) for index in range(required_repeats)}
-    if set(metrics_by_repeat) != expected_repeat_keys or set(decisions) != expected_repeat_keys:
-        raise ValueError("attestation must contain exactly repeat IDs 0, 1, and 2")
-    recomputed_decisions: dict[str, dict[str, Any]] = {}
-    for repeat in sorted(expected_repeat_keys):
-        metrics = _require_object(metrics_by_repeat[repeat], f"metrics repeat {repeat}")
-        if set(metrics) != {"B0", "B1", "B2", "C"}:
-            raise ValueError(f"metrics repeat {repeat} must contain B0/B1/B2/C")
-        for policy_id, aggregate in metrics.items():
-            aggregate_object = _require_object(
-                aggregate, f"metrics repeat {repeat} policy {policy_id}"
-            )
-            if not aggregate_object or any(
-                isinstance(value, (dict, list)) for value in aggregate_object.values()
-            ):
-                raise ValueError("attestation metrics must be aggregate scalar values")
-        if any(
-            aggregate.get("scenario_count") != scenario_count
-            for aggregate in metrics.values()
-        ):
-            raise ValueError("aggregate scenario counts do not match boundary")
-        recomputed = derive_repeat_decision(metrics, policy)
-        if canonical_json(decisions[repeat]) != canonical_json(recomputed):
-            raise ValueError(f"repeat {repeat} decision is inconsistent with aggregate metrics")
-        recomputed_decisions[repeat] = recomputed
-    if artifacts["aggregate_metrics_sha256"] != stable_hash(metrics_by_repeat):
+    aggregate = _require_object(top["aggregate"], "aggregate")
+    validate_private_aggregate(aggregate, policy)
+    if artifacts["aggregate_metrics_sha256"] != stable_hash(aggregate):
         raise ValueError("aggregate metrics hash does not match attested metrics")
+    if (
+        artifacts["bootstrap_samples_sha256"]
+        != aggregate["statistics"]["bootstrap"]["samples_sha256"]
+    ):
+        raise ValueError("bootstrap samples hash does not match aggregate")
+    expected_bootstrap_binding = promotion_binding_sha256(
+        dataset_manifest_sha256=artifacts["dataset_manifest_sha256"],
+        paired_results_sha256=artifacts["paired_results_sha256"],
+        candidate_tree_sha256=candidate["tree_sha256"],
+        policy_sha256=artifacts["policy_sha256"],
+    )
+    if (
+        aggregate["statistics"]["bootstrap"]["binding_sha256"]
+        != expected_bootstrap_binding
+    ):
+        raise ValueError("bootstrap binding does not match frozen artifacts")
 
-    expected_decision = _derive_overall_decision(
-        recomputed_decisions, isolated=isolated
+    independence_eligible = _validate_boundary(top["boundary"], policy)
+    live_qwen_eligible = _validate_live_qwen(top["live_qwen"], policy, artifacts)
+    live_qwen = top["live_qwen"]
+    if candidate["qwen_model_id"] != live_qwen["model_id"]:
+        raise ValueError("candidate and live_qwen model IDs do not match")
+    if candidate["qwen_prompt_sha256"] != live_qwen["prompt_sha256"]:
+        raise ValueError("candidate and live_qwen prompt hashes do not match")
+    if candidate["qwen_prompt_sha256"] != file_sha256(
+        root / "src" / "librarian" / "prompts.py"
+    ):
+        raise ValueError("candidate Qwen prompt hash does not match current source")
+
+    expected_decision = derive_private_promotion_decision(
+        aggregate,
+        policy,
+        independence_eligible=independence_eligible,
+        live_qwen_eligible=live_qwen_eligible,
     )
     supplied_decision = _require_object(top["decision"], "decision")
     _require_exact_keys(
@@ -485,25 +653,22 @@ def verify_attestation(
         {
             "gate_status",
             "promotion_status",
-            "eligible_repeats",
-            "passing_repeats",
+            "checks",
+            "hold_findings",
             "kill_findings",
         },
         "decision",
     )
     if canonical_json(supplied_decision) != canonical_json(expected_decision):
-        if not isolated:
-            raise ValueError(
-                "non-isolated holdout must be NOT_ELIGIBLE_GOLD_NOT_ISOLATED"
-            )
         raise ValueError("overall promotion/kill decision is inconsistent")
 
     return AttestationVerification(
         gate_status=expected_decision["gate_status"],
         promotion_status=expected_decision["promotion_status"],
         eligible=expected_decision["promotion_status"] == "PROMOTE",
-        passing_repeats=expected_decision["passing_repeats"],
-        required_passing_repeats=minimum_passing,
+        scenario_count=int(aggregate["scenario_count"]),
+        b2_success_delta=float(aggregate["statistics"]["delta"]),
+        exact_mcnemar_p=float(aggregate["statistics"]["exact_mcnemar_p"]),
         candidate_git_sha=evaluated_sha,
         candidate_tree_sha256=current_tree,
         policy_sha256=actual_policy_sha256,
@@ -524,7 +689,7 @@ def _parse_args() -> argparse.Namespace:
     verify.add_argument("--dataset-manifest-sha256", required=True)
     verify.add_argument("--policy", type=Path, default=Path("eval/policy.json"))
     verify.add_argument("--repository-root", type=Path, default=Path("."))
-    verify.add_argument("--attestor")
+    verify.add_argument("--attestor", required=True)
     return parser.parse_args()
 
 

@@ -470,6 +470,14 @@ class HarnessTests(unittest.TestCase):
                 else:
                     os.environ["HOLDOUT_SEED"] = old
             self.assertEqual(manifest["scenario_count"], 24)
+            self.assertEqual(
+                manifest["evidence_role"], "same_builder_diagnostic_only"
+            )
+            self.assertFalse(manifest["promotion_eligible"])
+            self.assertEqual(
+                manifest["collection_provenance"],
+                "repository_scenario_builders_v1",
+            )
             manifest_text = json.dumps(manifest)
             self.assertNotIn("test-only-private-seed-00000001", manifest_text)
             output = root / "run" / "outputs.jsonl"

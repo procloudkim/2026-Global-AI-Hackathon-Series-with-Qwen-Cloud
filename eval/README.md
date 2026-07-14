@@ -68,71 +68,77 @@ uv run python -m eval.evaluate `
 Dev has eight scenarios, so its gate status must remain
 `NOT_ELIGIBLE_DEV_OR_MISSING_REPEATS` even when C passes all behavior checks.
 
-## Private holdout
+## Repository-generated diagnostic holdout
 
-Use a high-entropy secret with at least 16 characters. Never place it in a command
-argument, file, issue, or log.
+<code>eval.generate --split holdout</code> remains available for hidden-value
+regression work, but it is not private-promotion evidence. It changes values through
+<code>HOLDOUT_SEED</code> while using the same repository-owned scenario builders
+that produce dev inputs and gold. Its manifest therefore records:
 
-```powershell
-$env:HOLDOUT_SEED = '<user-owned-high-entropy-secret>'
-uv run python -m eval.generate --split holdout --commitment-only
-uv run python -m eval.generate --split holdout --output-dir eval/private/holdout-v1
-Remove-Item Env:HOLDOUT_SEED
-```
+- <code>evidence_role: same_builder_diagnostic_only</code>
+- <code>promotion_eligible: false</code>
+- <code>collection_provenance: repository_scenario_builders_v1</code>
 
-The manifest stores only the SHA-256 commitment, artifact hashes, current Git commit,
-and a candidate tree hash. `eval/private/` is ignored by Git. Materializing a holdout
-before candidate freeze, editing candidate code afterward, or changing policy/gates
-invalidates the holdout.
+The local runner also records <code>runner_process_isolation: false</code>. Neither a
+secret seed nor editing that boolean can make a local result eligible.
 
-Run and evaluate the policy-comparison lane with the same commands as dev, pointing
-at the private files and passing
-`--candidate-factory src.librarian.eval_adapter:create_adapter`.
-Do not pass `gold.jsonl` to `eval.run`; its CLI has no gold argument and rejects known
-oracle fields if they appear under another filename.
+## Independent private promotion v2
 
-For a valid holdout boundary, copy only `runner-inputs/` plus candidate code into a
-separate runner environment and keep `evaluator-only/` outside that environment. The
-allowlisted in-process factory and its module hash prevent an arbitrary adapter from
-entering a receipt. The included local runner is not an operating-system sandbox: its
-manifest records `runner_process_isolation: false`, so every local holdout result is
-`NOT_ELIGIBLE_GOLD_NOT_ISOLATED` regardless of its metric values.
-The evaluator rejects a local manifest whose boolean is edited to `true`; runner
-self-attestation is never accepted as isolation evidence. A future externally
-attested lane must bind its trusted receipt to the dataset, outputs, candidate tree,
-and run-manifest hashes and use a separate verifier.
+Promotion requires an external evaluator and the frozen contract in
+<code>eval/policy.json</code>:
 
-### Public promotion attestation
+- 8 scenario types × naturalistic/adversarial pools × 24 scenarios = 384
+- two author pools separate from the candidate team
+- independent double annotation and third-party adjudication
+- final candidate outputs hidden while cases are collected
+- B2 and C evaluated on the same scenario
+- scenario, not checkpoint or repeat, is the statistical unit
+- Qwen is the answer model only in the 24-case live subset, never the oracle or judge
 
-An independent evaluator may publish only an aggregate receipt conforming to
-`eval/attestation.schema.json`. The receipt contains no seed, seed commitment, oracle
-rows, oracle digest, or scenario-level result. It binds the frozen dataset manifest,
-runner inputs, outputs, policy, aggregate metrics, evaluated candidate tree, evaluated
-Git SHA, and deployed Git SHA. Qwen is explicitly excluded from both oracle generation
-and pass/fail judging.
+The private evaluator stores one paired row per scenario using
+<code>eval/private-paired-results.schema.json</code>. <code>scenario_success</code>
+is deliberately absent; <code>eval.private_promotion</code> derives it from answer,
+citation, stale-context, preservation, retrieval, transition, abstention, ledger, and
+wire-citation checks.
 
-The attestor signs the canonical output of `payload` with a pre-registered RSA key.
-The trusted OpenSSH `ssh-rsa` public key is supplied to the verifier out of band; a key
-embedded only in the receipt is not trusted.
+The external evaluator computes aggregate-only evidence without publishing rows:
 
-```powershell
-uv run python -m eval.attestation payload `
-  --attestation <unsigned-or-signed-attestation.json> > payload.json
+~~~powershell
+uv run python -m eval.private_promotion --paired-results <private-paired-results.jsonl> --dataset-manifest-sha256 <frozen-private-manifest-sha256> --candidate-tree-sha256 <frozen-candidate-tree-sha256> --policy eval/policy.json --output <aggregate-metrics.json>
+~~~
 
-uv run python -m eval.attestation verify `
-  --attestation <signed-attestation.json> `
-  --trusted-public-key <independent-attestor.pub> `
-  --deployed-sha <exact-deployment-sha> `
-  --dataset-manifest-sha256 <frozen-private-manifest-sha256> `
-  --attestor <trusted-attestor-identity>
-```
+The scorer rejects missing cells, duplicate scenario IDs, extra labels, and any matrix
+other than 384 scenarios. It computes the paired B2/C table, exact two-sided McNemar
+p-value, and 10,000-sample stratified paired bootstrap interval. Deterministic reruns
+may demonstrate reproducibility but never increase the statistical sample count.
 
-Verification recomputes every repeat decision using the existing production
-comparison gates and kill rules, requires exactly three repeats and a two-of-three
-promotion result, compares the current candidate tree and repository HEAD, and
-requires the evaluated SHA to equal the deployed SHA. A code change invalidates the
-tree digest. Missing process isolation yields
-`NOT_ELIGIBLE_GOLD_NOT_ISOLATED`; no attestation boolean can upgrade a local receipt.
+### Public promotion attestation v2
+
+The external evaluator publishes only a signed aggregate receipt conforming to
+<code>eval/attestation.schema.json</code>. The receipt contains no seed, gold, case
+text, or scenario-level result. It binds:
+
+- independent collection and process-isolation claims
+- protocol, annotation guide, role-separation, dataset, inputs, paired-result, and aggregate hashes
+- exact candidate/deployed SHA and current B2/C/answer-contract source hashes
+- 384-case paired statistics and all 16 cell summaries
+- a precommitted 24-case live-Qwen subset capped at 144 calls
+- raw provider-response and token-usage receipt hashes
+
+Legacy schema v1 and a top-level <code>repeats</code> field are rejected. A trusted
+OpenSSH <code>ssh-rsa</code> key and attestor identity must be supplied out of band.
+
+~~~powershell
+uv run python -m eval.attestation payload --attestation <unsigned-or-signed-attestation-v2.json> > payload.json
+
+uv run python -m eval.attestation verify --attestation <signed-attestation-v2.json> --trusted-public-key <independent-attestor.pub> --deployed-sha <exact-deployment-sha> --dataset-manifest-sha256 <frozen-private-manifest-sha256> --attestor <trusted-attestor-identity>
+~~~
+
+Verification recomputes all public arithmetic, policy gates, McNemar significance,
+cell/pool aggregation, live-Qwen limits, source hashes, repository tree, and
+evaluated/deployed SHA equality. It cannot establish independence by itself; that
+claim is accepted only from the pre-trusted external signer. Until such a real signed
+receipt exists, <code>promotion_status</code> remains <code>HOLD</code>.
 
 ## Production candidate adapter
 

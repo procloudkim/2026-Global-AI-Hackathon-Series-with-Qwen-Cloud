@@ -163,3 +163,6 @@ validator를 통해 바꾼다.
   evidence binding, checkpoint prefix append-only, FSM replay=canonical state를 AND gate로 둔다.
 - ADR-11: exact-SHA immutable release만 교체하고 persistent memory는 rollback에서도 유지한다.
 - ADR-12: structural, live-Qwen, deployed-persistence, private-promotion 증명을 별도 AND gate로 유지한다.
+- ADR-13: 공개 dev replay는 회귀 증명으로 제한하고, 외부 작성 384-case sealed
+  holdout의 paired 통계와 live Qwen subset을 private-promotion의 필수 근거로 둔다.
+  상세: [ADR-13-independent-private-holdout.md](ADR-13-independent-private-holdout.md)
