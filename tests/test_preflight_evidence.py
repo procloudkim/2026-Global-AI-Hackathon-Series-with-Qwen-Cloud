@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -11,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 PWSH = shutil.which("pwsh")
+ANSI_CONTROL_SEQUENCE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def _fixture_repo(tmp_path: Path, first_artifact_id: str | None = None) -> Path:
@@ -82,7 +84,22 @@ def _run(repo: Path, mode: str) -> subprocess.CompletedProcess[str]:
 
 
 def _output(result: subprocess.CompletedProcess[str]) -> str:
-    return result.stdout + result.stderr
+    rendered = ANSI_CONTROL_SEQUENCE.sub("", result.stdout + result.stderr)
+    return " ".join(rendered.split())
+
+
+def test_output_normalizes_powershell_terminal_formatting() -> None:
+    result = subprocess.CompletedProcess(
+        args=["pwsh"],
+        returncode=1,
+        stdout="",
+        stderr=(
+            "\x1b[31;1mrequires a nonblank\x1b[0m\n"
+            "repository-contained path"
+        ),
+    )
+
+    assert "requires a nonblank repository-contained path" in _output(result)
 
 
 @pytest.mark.parametrize(
