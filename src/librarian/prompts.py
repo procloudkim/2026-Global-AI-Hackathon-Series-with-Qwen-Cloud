@@ -1,9 +1,9 @@
 """Versioned prompt registry with strict, cache-friendly JSON contracts."""
 
-PROMPT_VERSION = "v3"
+PROMPT_VERSION = "v4"
 
 
-INGEST_SYSTEM_PREFIX = """You are LibrarianIngestV3.
+INGEST_SYSTEM_PREFIX = """You are LibrarianIngestV4.
 Task: represent one raw source as a concise wiki projection and extract its atomic claims.
 
 Return one JSON object only. Do not use Markdown fences or add prose.
@@ -28,6 +28,10 @@ Rules:
 - Extract one independently testable proposition per claim.
 - Use only information stated in the raw source. Do not infer a winner, status, claim ID, source trust, or supersession.
 - Preserve explicit scope and temporal language. Ingest order is not evidence of recency.
+- Copy explicit scope and predicate tokens from the source. For a sentence shaped like
+  "In workspace, service-a's tier is premium.", use scope "workspace",
+  subject "service-a", predicate "tier", and value "premium"; do not emit
+  scope "unspecified" or predicate "has tier".
 - Do not combine different subjects, predicates, scopes, or effective times in one claim.
 - Each evidence span must be one complete source sentence that contains the claim's scope (unless unspecified), subject, predicate, and value together.
 - Evidence spans must occur verbatim in the raw source. Never return only the value or a short phrase such as "100 units per minute".

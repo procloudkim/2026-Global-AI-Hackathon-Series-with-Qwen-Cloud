@@ -60,6 +60,33 @@ def test_ambiguous_value_only_evidence_still_fails_closed(tmp_path: Path) -> Non
     assert store.list_wiki_pages() == []
 
 
+def test_explicit_possessive_evidence_repairs_scope_and_predicate(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    source = "In workspace, service-a's tier is premium."
+    model_claim = extracted_claim(
+        value="premium",
+        evidence_span=source,
+        scope="unspecified",
+        subject="service-a",
+        predicate="has tier",
+    )
+
+    result = ingest_source(
+        source_id="source-a",
+        source_text=source,
+        store=store,
+        router=ScriptedRouter(
+            ingest_payload(title="Workspace tier", claims=[model_claim])
+        ),
+        observed_at="2026-07-14T00:00:00Z",
+    )
+
+    claim = Claim.from_dict(store.claims_for_page(result.page.slug)[0])
+    assert claim.key == "workspace::service-a::tier"
+    assert claim.scope == "workspace"
+    assert claim.predicate == "tier"
+
+
 def test_duplicate_claim_merges_provenance_without_new_claim(tmp_path: Path) -> None:
     store = MemoryStore(tmp_path / "memory")
     span_a = "production API quota is 100"

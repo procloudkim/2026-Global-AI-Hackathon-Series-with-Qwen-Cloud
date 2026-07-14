@@ -39,6 +39,15 @@ _CROSS_SENTENCE_RECORD_REPLACEMENT = re.compile(
     r"\bthis\s+record\b.*\b(?:replaces?|supersedes?)\s+(?:src|source)[\w.-]+",
     flags=re.IGNORECASE,
 )
+_EXPLICIT_POSSESSIVE_ASSERTION = re.compile(
+    r"\bin\s+(?P<scope>[^\W_][\w.-]*)\s*,\s*"
+    r"(?P<subject>[^\s,;:]+?)['’]s\s+"
+    r"(?P<predicate>[^\W][\w.-]*)\s+is\s+"
+    r"(?P<value>[^.!?\r\n]+?)(?:[.!?]|$)",
+    flags=re.IGNORECASE | re.UNICODE,
+)
+
+
 class SupportsChat(Protocol):
     def chat(
         self,
@@ -701,6 +710,7 @@ def _materialize_claims(
                 raise ValueError(
                     f"claim[{index}] evidence span is not verbatim in the raw source"
                 )
+        raw = _repair_explicit_possessive_components(raw, spans=spans)
         value = _required_string(raw, "value", index)
         scope = _required_string(raw, "scope", index)
         subject = _required_string(raw, "subject", index)
@@ -774,6 +784,37 @@ def _materialize_claims(
         previous = by_id.get(claim.claim_id)
         by_id[claim.claim_id] = claim if previous is None else _merge_provenance(previous, claim)
     return list(by_id.values())
+
+
+def _repair_explicit_possessive_components(
+    raw: dict[str, Any], *, spans: list[str]
+) -> dict[str, Any]:
+    """Canonicalize an unambiguous claim key from its own exact evidence.
+
+    The model occasionally drops an explicit scope or prefixes a predicate with
+    ``has``.  For the narrow possessive assertion grammar below, the source
+    sentence itself is authoritative.  Ambiguous or non-matching evidence is
+    left untouched so the normal grounding validator remains fail-closed.
+    """
+
+    subject = raw.get("subject")
+    value = raw.get("value")
+    if not isinstance(subject, str) or not isinstance(value, str):
+        return raw
+    matches: set[tuple[str, str]] = set()
+    for span in spans:
+        for match in _EXPLICIT_POSSESSIVE_ASSERTION.finditer(span):
+            if (
+                normalize_component(match.group("subject"))
+                == normalize_component(subject)
+                and normalize_component(match.group("value"))
+                == normalize_component(value)
+            ):
+                matches.add((match.group("scope"), match.group("predicate")))
+    if len(matches) != 1:
+        return raw
+    scope, predicate = next(iter(matches))
+    return {**raw, "scope": scope, "predicate": predicate}
 
 
 def _claims_for_key(store: MemoryStore, key: str) -> tuple[list[tuple[str, Claim]], int]:

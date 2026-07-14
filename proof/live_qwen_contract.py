@@ -1027,7 +1027,9 @@ def evaluate(args: argparse.Namespace) -> int:
 
     metrics = _aggregate(scored)
     policy = load_json(args.policy)
-    decision = _conformance_for_repeat({"C": metrics}, policy["promotion_gates"])
+    decision = _conformance_for_repeat(
+        {"C": metrics}, policy["repository_diagnostic_gates"]
+    )
     provider_ok = int(manifest["usage"].get("provider_errors", 0)) == 0
     passed = bool(decision.get("passed")) and provider_ok
     status = "LIVE_QWEN_2CASE_PASS" if passed else "LIVE_QWEN_2CASE_FAIL"

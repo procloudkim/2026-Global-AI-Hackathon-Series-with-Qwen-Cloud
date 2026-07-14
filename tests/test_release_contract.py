@@ -80,6 +80,12 @@ def test_live_image_excludes_private_promotion_evaluator() -> None:
     assert "eval/private-paired-results.schema.json" in dockerignore
 
 
+def test_live_evaluator_uses_current_diagnostic_gate_schema() -> None:
+    runner = read("proof/live_qwen_contract.py")
+    assert 'policy["repository_diagnostic_gates"]' in runner
+    assert 'policy["promotion_gates"]' not in runner
+
+
 def test_cloud_target_digest_is_bound_through_host_and_release_receipts() -> None:
     cloud_schema = json.loads(read("deploy/cloud-approval.schema.json"))
     infrastructure_schema = json.loads(read("deploy/infrastructure-readiness.schema.json"))
