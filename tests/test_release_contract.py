@@ -73,6 +73,13 @@ def test_release_workflow_is_fail_closed_and_ordered() -> None:
     assert "Release-gate receipt lacks its approved deployment-target digest" in read("scripts/preflight.ps1")
 
 
+def test_live_image_excludes_private_promotion_evaluator() -> None:
+    dockerignore = {line.strip() for line in read(".dockerignore").splitlines()}
+    assert "eval/private" in dockerignore
+    assert "eval/private_promotion.py" in dockerignore
+    assert "eval/private-paired-results.schema.json" in dockerignore
+
+
 def test_cloud_target_digest_is_bound_through_host_and_release_receipts() -> None:
     cloud_schema = json.loads(read("deploy/cloud-approval.schema.json"))
     infrastructure_schema = json.loads(read("deploy/infrastructure-readiness.schema.json"))

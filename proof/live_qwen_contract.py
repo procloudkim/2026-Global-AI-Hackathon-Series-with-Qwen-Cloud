@@ -115,7 +115,11 @@ def _candidate_tree_hash(root: str | Path) -> str:
             files.extend(path for path in base.rglob("*.py") if path.is_file())
     for path in sorted(files):
         relative = path.relative_to(repository).as_posix()
-        if relative.startswith("eval/private/") or relative.startswith("eval/runs/"):
+        if (
+            relative.startswith("eval/private/")
+            or relative.startswith("eval/runs/")
+            or relative == "eval/private_promotion.py"
+        ):
             continue
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")

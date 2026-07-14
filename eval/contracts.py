@@ -71,9 +71,12 @@ def _canonical_source_bytes(path: Path) -> bytes:
 def candidate_tree_hash(root: str | Path) -> str:
     """Hash every executable/config artifact that can affect a receipt.
 
-    Private datasets and generated runs are excluded.  The policy is hashed
-    separately because changing a gate must invalidate both dataset and run
-    manifests with an explicit, reviewable mismatch.
+    Private datasets, generated runs, and the independent private-promotion
+    evaluator are excluded.  The private evaluator must never enter the live
+    candidate image; its policy and evaluation artifacts are hashed by their
+    own contracts.  The policy is hashed separately because changing a gate
+    must invalidate both dataset and run manifests with an explicit,
+    reviewable mismatch.
     """
     repository = Path(root)
     digest = hashlib.sha256()
@@ -83,7 +86,11 @@ def candidate_tree_hash(root: str | Path) -> str:
             files.extend(path for path in base.rglob("*.py") if path.is_file())
     for path in sorted(files):
         relative = path.relative_to(repository).as_posix()
-        if relative.startswith("eval/private/") or relative.startswith("eval/runs/"):
+        if (
+            relative.startswith("eval/private/")
+            or relative.startswith("eval/runs/")
+            or relative == "eval/private_promotion.py"
+        ):
             continue
         digest.update(relative.encode("utf-8"))
         digest.update(b"\0")

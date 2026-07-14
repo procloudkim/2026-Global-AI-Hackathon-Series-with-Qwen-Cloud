@@ -42,6 +42,34 @@ class HarnessTests(unittest.TestCase):
                 candidate_tree_hash(crlf_root),
             )
 
+    def test_candidate_tree_hash_excludes_private_promotion_evaluator(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            files = {
+                "src/librarian/example.py": "value = 1\n",
+                "eval/evaluate.py": "SCORER = 'fixed'\n",
+                "eval/private_promotion.py": "PRIVATE_EVALUATOR = 'first'\n",
+                "pyproject.toml": "[project]\nname = 'example'\n",
+                "uv.lock": "version = 1\n",
+            }
+            for relative, content in files.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+
+            frozen = candidate_tree_hash(root)
+            (root / "eval/private_promotion.py").write_text(
+                "PRIVATE_EVALUATOR = 'second'\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(frozen, candidate_tree_hash(root))
+
+            (root / "eval/evaluate.py").write_text(
+                "SCORER = 'changed'\n",
+                encoding="utf-8",
+            )
+            self.assertNotEqual(frozen, candidate_tree_hash(root))
+
     def test_generator_is_deterministic_and_opaque(self) -> None:
         first = build_dataset(
             seed="deterministic-test-seed-0001",

@@ -10,5 +10,7 @@ bench/results.json
 bench/results.md
 eval/private
 eval/runs
+eval/private_promotion.py
+eval/private-paired-results.schema.json
 proof/runs
 
