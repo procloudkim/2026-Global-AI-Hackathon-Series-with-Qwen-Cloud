@@ -115,6 +115,14 @@ def test_deploy_and_rollback_preserve_memory_and_require_gate_receipt() -> None:
     assert "MEMORY_BEFORE" in combined and "MEMORY_AFTER" in combined
 
 
+def test_setup_runs_service_user_uv_outside_root_home() -> None:
+    setup = read("deploy/setup.sh")
+    assert "runuser -u \"${SERVICE_USER}\"" in setup
+    assert "sh \"${STATE_ROOT}\"" in setup
+    assert "cd \"$1\"" in setup
+    assert 'UV_PYTHON_INSTALL_DIR="$1/python"' in setup
+
+
 def test_restart_proof_has_budget_trace_and_failure_quarantine() -> None:
     proof = read("deploy/verify-restart-persistence.sh")
     assert "maximum_provider_attempts_with_retry_zero" in proof

@@ -136,9 +136,9 @@ fi
 echo "[5/7] Installing the managed Python 3.12 runtime"
 install -d -m 0755 -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" \
   "${STATE_ROOT}/python"
-runuser -u "${SERVICE_USER}" -- env \
-  UV_PYTHON_INSTALL_DIR="${STATE_ROOT}/python" \
-  /usr/local/bin/uv python install 3.12
+runuser -u "${SERVICE_USER}" -- \
+  sh -c 'cd "$1" && exec env UV_PYTHON_INSTALL_DIR="$1/python" /usr/local/bin/uv python install 3.12' \
+  sh "${STATE_ROOT}"
 
 echo "[6/7] Writing hardened systemd and Caddy definitions"
 install -m 0644 -o root -g root "${SCRIPT_DIR}/Caddyfile" /etc/caddy/Caddyfile
