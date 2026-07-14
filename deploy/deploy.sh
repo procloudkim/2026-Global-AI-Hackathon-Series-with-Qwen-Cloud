@@ -94,6 +94,7 @@ readonly EVENT_ID="$(date -u +%Y%m%dT%H%M%SZ)-${CANDIDATE_SHA:0:12}"
 readonly MANIFEST_PATH="${DEPLOYMENT_ROOT}/${EVENT_ID}.json"
 readonly STAGING_PATH="${RELEASE_ROOT}/.${CANDIDATE_SHA}.staging.$$"
 readonly HEALTH_BODY="${DEPLOYMENT_ROOT}/.${EVENT_ID}.health.json"
+readonly ARCHIVE_TAR="${DEPLOYMENT_ROOT}/.${EVENT_ID}.archive.tar"
 readonly STORED_RELEASE_GATE="${DEPLOYMENT_ROOT}/${EVENT_ID}.release-gate.json"
 readonly SMOKE_MEMORY_ROOT="/tmp/librarian-smoke-memory-${EVENT_ID}-$$"
 readonly STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -311,6 +312,7 @@ on_error() {
     rm -rf -- "${SMOKE_MEMORY_ROOT}"
   fi
   rm -f -- "${HEALTH_BODY}"
+  rm -f -- "${ARCHIVE_TAR}"
   echo "deployment_manifest=${MANIFEST_PATH}" >&2
   exit "${exit_code}"
 }
@@ -345,7 +347,9 @@ if receipt.get("candidate_sha") != os.environ["CANDIDATE_SHA_VALUE"]:
 PY
 install -m 0640 -o root -g "${SERVICE_GROUP}" \
   "${RELEASE_GATE_RECEIPT}" "${STORED_RELEASE_GATE}"
-embedded_commit="$(gzip -dc -- "${ARCHIVE}" | git get-tar-commit-id)"
+gzip -dc -- "${ARCHIVE}" >"${ARCHIVE_TAR}"
+embedded_commit="$(git get-tar-commit-id <"${ARCHIVE_TAR}")"
+rm -f -- "${ARCHIVE_TAR}"
 if [[ "${embedded_commit}" != "${CANDIDATE_SHA}" ]]; then
   echo "ERROR: git archive commit ${embedded_commit:-missing} != ${CANDIDATE_SHA}" >&2
   false

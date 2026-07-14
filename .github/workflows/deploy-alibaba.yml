@@ -215,9 +215,12 @@ jobs:
         run: |
           set -euo pipefail
           ARCHIVE="${RUNNER_TEMP}/librarian-${CANDIDATE_SHA}.tar.gz"
+          ARCHIVE_TAR="${RUNNER_TEMP}/librarian-${CANDIDATE_SHA}.tar"
           git archive --format=tar.gz --output "${ARCHIVE}" "${CANDIDATE_SHA}"
           ARCHIVE_SHA256="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
-          test "$(gzip -dc "${ARCHIVE}" | git get-tar-commit-id)" = "${CANDIDATE_SHA}"
+          gzip -dc "${ARCHIVE}" >"${ARCHIVE_TAR}"
+          test "$(git get-tar-commit-id <"${ARCHIVE_TAR}")" = "${CANDIDATE_SHA}"
+          rm -f "${ARCHIVE_TAR}"
           echo "path=${ARCHIVE}" >>"${GITHUB_OUTPUT}"
           echo "sha256=${ARCHIVE_SHA256}" >>"${GITHUB_OUTPUT}"
 

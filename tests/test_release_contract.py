@@ -110,6 +110,10 @@ def test_deploy_and_rollback_preserve_memory_and_require_gate_receipt() -> None:
     assert "/var/lib/librarian/memory" in combined
     assert "--release-gate-receipt" in deploy
     assert "git get-tar-commit-id" in deploy
+    assert 'gzip -dc -- "${ARCHIVE}" >"${ARCHIVE_TAR}"' in deploy
+    assert 'git get-tar-commit-id <"${ARCHIVE_TAR}"' in deploy
+    assert 'rm -f -- "${ARCHIVE_TAR}"' in deploy
+    assert "gzip -dc -- \"${ARCHIVE}\" | git get-tar-commit-id" not in deploy
     assert "atomic_link" in deploy and "atomic_link" in rollback
     assert 'rm -rf -- "${MEMORY_ROOT}"' not in combined
     assert "MEMORY_BEFORE" in combined and "MEMORY_AFTER" in combined
