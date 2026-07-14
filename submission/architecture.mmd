@@ -1,32 +1,37 @@
-flowchart LR
-    subgraph Client
-        UI[Web UI / CLI]
-        MCP[MCP Client<br/>Claude Code etc.]
-    end
+flowchart TB
+    J[Judge / Demo Client]
 
-    subgraph AlibabaCloud[Alibaba Cloud - ECS/FC]
-        API[FastAPI Backend]
-        ROUTER[Model Router<br/>LIGHT / HEAVY]
-        subgraph Pipelines
-            ING[Ingest]
-            QRY[Query]
-            LNT[Forget/Lint]
-        end
-        subgraph MemoryStore[Memory Store]
+    subgraph AC["Alibaba Cloud - ECS trial candidate (activation approval required)"]
+        HTTPS[Caddy HTTPS + Basic Auth<br/>request-size and access boundary]
+        API[FastAPI Librarian<br/>exact deployed commit SHA]
+        subgraph MEM[Persistent system disk - /var/lib/librarian/memory]
             RAW[raw/ immutable sources]
-            WIKI[wiki/ pages + index.md + log.md]
-            ARC[archive/ forgotten memory]
-            GRAPH[graph.json link graph]
+            WIKI[wiki/ canonical claims]
+            DEC[decisions.jsonl + recovery journals]
+            IDX[index.md + graph.json<br/>derived top-K index]
         end
-        METER[Run Ledger]
+        RUNS[runs.jsonl + deployment manifests]
     end
 
-    QWEN[Qwen Cloud<br/>DashScope OpenAI-compatible API]
+    QWEN[Qwen Cloud API<br/>qwen-flash / approved heavy model]
 
-    UI --> API
-    MCP --> API
-    API --> Pipelines
-    Pipelines --> ROUTER --> QWEN
-    Pipelines <--> MemoryStore
-    API --> METER
+    J -->|HTTPS| HTTPS --> API
+    API -->|bounded calls, tokens, timeout, retry| QWEN
+    API <--> MEM
+    API --> RUNS
 
+    subgraph DELIVERY[Delivery and proof plane]
+        GH[Public GitHub repository]
+        CI[Deterministic CI<br/>no Qwen key]
+        APPROVE[GitHub production approval]
+        LIVE[Capped 2-case live Qwen gate]
+        RELEASE[Immutable /opt/librarian/releases/sha<br/>current symlink + rollback]
+        VERIFY[Health + restart-persistence proof<br/>Workbench evidence]
+        HOLDOUT[Independent private 24-case holdout<br/>public attestation only]
+    end
+
+    GH --> CI --> APPROVE --> LIVE --> RELEASE --> VERIFY --> HOLDOUT
+    RELEASE -. deploys exact SHA .-> API
+
+    classDef pending stroke-dasharray: 5 5
+    class APPROVE,LIVE,RELEASE,VERIFY,HOLDOUT pending

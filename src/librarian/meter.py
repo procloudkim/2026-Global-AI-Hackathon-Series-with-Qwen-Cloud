@@ -20,6 +20,7 @@ class RunEvent:
     latency_ms: int
     success: bool
     error: str | None = None
+    details: dict[str, Any] | None = None
 
 
 class RunLedger:
@@ -42,9 +43,24 @@ class RunLedger:
         total_tokens = sum(int(r.get("total_tokens", 0)) for r in rows)
         latency_ms = sum(int(r.get("latency_ms", 0)) for r in rows)
         by_tier: dict[str, int] = {}
+        trace_totals: dict[str, int] = {}
         for r in rows:
             tier = str(r.get("route_tier", "unknown"))
             by_tier[tier] = by_tier.get(tier, 0) + 1
+            details = r.get("details")
+            if isinstance(details, dict):
+                for key in (
+                    "corpus_pages",
+                    "candidate_pages",
+                    "loaded_pages",
+                    "active_claims_loaded",
+                    "disputed_claims_loaded",
+                    "superseded_claims_filtered",
+                    "context_tokens",
+                ):
+                    value = details.get(key)
+                    if isinstance(value, int) and not isinstance(value, bool):
+                        trace_totals[key] = trace_totals.get(key, 0) + value
         return {
             "requests": total,
             "successes": successes,
@@ -56,6 +72,7 @@ class RunLedger:
             },
             "avg_latency_ms": int(latency_ms / total) if total else 0,
             "by_tier": by_tier,
+            "trace_totals": trace_totals,
         }
 
     def _rows(self) -> list[dict[str, Any]]:

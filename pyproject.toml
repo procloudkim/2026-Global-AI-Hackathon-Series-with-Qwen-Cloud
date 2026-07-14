@@ -1,7 +1,7 @@
 [project]
 name = "librarian"
 version = "0.1.0"
-description = "Add your description here"
+description = "Evidence-grounded persistent memory agent powered by Qwen Cloud"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.139.0",
@@ -20,7 +20,7 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["tests"]
+testpaths = ["tests", "eval/tests"]
 
 [tool.uv]
 package = false

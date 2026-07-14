@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://librarian.example/schemas/private-holdout-attestation-v1.json",
+  "title": "Librarian private holdout promotion attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "created_at",
+    "attestor",
+    "candidate",
+    "artifacts",
+    "boundary",
+    "repeats",
+    "decision",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "kind": {"const": "librarian.private-holdout-promotion-attestation"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "attestor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "independent_evaluator", "signature_key_id"],
+      "properties": {
+        "identity": {"type": "string", "minLength": 1},
+        "independent_evaluator": {"const": true},
+        "signature_key_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evaluated_git_sha", "deployed_git_sha", "tree_sha256"],
+      "properties": {
+        "evaluated_git_sha": {"$ref": "#/$defs/gitSha"},
+        "deployed_git_sha": {"$ref": "#/$defs/gitSha"},
+        "tree_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_sha256",
+        "dataset_manifest_sha256",
+        "runner_inputs_sha256",
+        "outputs_sha256",
+        "aggregate_metrics_sha256"
+      ],
+      "properties": {
+        "policy_sha256": {"$ref": "#/$defs/sha256"},
+        "dataset_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "runner_inputs_sha256": {"$ref": "#/$defs/sha256"},
+        "outputs_sha256": {"$ref": "#/$defs/sha256"},
+        "aggregate_metrics_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split",
+        "scenario_count",
+        "runner_process_isolated_from_oracle",
+        "candidate_process_isolated_from_oracle",
+        "evaluator_process_separate_from_runner",
+        "oracle_generator",
+        "oracle_uses_qwen",
+        "pass_fail_judge",
+        "judge_uses_qwen",
+        "private_material_published"
+      ],
+      "properties": {
+        "split": {"const": "holdout"},
+        "scenario_count": {"const": 24},
+        "runner_process_isolated_from_oracle": {"type": "boolean"},
+        "candidate_process_isolated_from_oracle": {"type": "boolean"},
+        "evaluator_process_separate_from_runner": {"type": "boolean"},
+        "oracle_generator": {"const": "deterministic-policy-oracle-v1"},
+        "oracle_uses_qwen": {"const": false},
+        "pass_fail_judge": {"const": "deterministic-policy-evaluator-v1"},
+        "judge_uses_qwen": {"const": false},
+        "private_material_published": {"const": false}
+      }
+    },
+    "repeats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "minimum_passing", "metrics_by_repeat", "decisions"],
+      "properties": {
+        "required": {"const": 3},
+        "minimum_passing": {"const": 2},
+        "metrics_by_repeat": {"$ref": "#/$defs/repeatMap"},
+        "decisions": {"$ref": "#/$defs/repeatMap"}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_status",
+        "promotion_status",
+        "eligible_repeats",
+        "passing_repeats",
+        "kill_findings"
+      ],
+      "properties": {
+        "gate_status": {
+          "enum": [
+            "PRIVATE_HOLDOUT_PROMOTION_PASS",
+            "PRIVATE_HOLDOUT_KILL",
+            "PRIVATE_HOLDOUT_GATE_FAIL",
+            "NOT_ELIGIBLE_GOLD_NOT_ISOLATED"
+          ]
+        },
+        "promotion_status": {"enum": ["PROMOTE", "KILL", "HOLD", "NOT_ELIGIBLE"]},
+        "eligible_repeats": {"type": "integer", "minimum": 0, "maximum": 3},
+        "passing_repeats": {"type": "integer", "minimum": 0, "maximum": 3},
+        "kill_findings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {"const": "rsa-pkcs1v15-sha256"},
+        "value": {"type": "string", "contentEncoding": "base64", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "repeatMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["0", "1", "2"],
+      "properties": {
+        "0": {"type": "object"},
+        "1": {"type": "object"},
+        "2": {"type": "object"}
+      }
+    }
+  }
+}

@@ -1,52 +1,98 @@
-# Librarian — 3분 데모 영상 스크립트
+# Librarian public demo video script (target: 2:45)
 
-> 목표: 3분 안에 (1) 문제, (2) 망각 엔진 차별화, (3) 토큰 효율 증거, (4) Qwen/MCP 사용을 보여준다.
-> 준비: `docker compose up -d` 실행 상태, 브라우저에 `http://localhost:8080` (데모 UI), 터미널 1개.
+Do not record this script until the live-Qwen gate, Alibaba restart proof, and
+private promotion attestation all bind to the same candidate SHA. Replace every
+`<EVIDENCE>` marker with the verified receipt value; never narrate a pending gate
+as a pass.
 
----
+## 0:00-0:20 - Problem and thesis
 
-## 0:00–0:25 — Hook & 문제 정의 (화면: 타이틀 슬라이드 → 데모 UI)
+Screen: title, then the English architecture diagram.
 
-**내레이션:**
-"AI agents don't have a memory problem — they have a *forgetting* problem. Most memory systems only append: they hoard every note until the context is full of stale, contradictory junk, and every extra page costs tokens. **Librarian** is a memory maintenance agent: it ingests, organizes, and — crucially — *forgets*, so agents answer better with fewer tokens."
+Narration:
 
-## 0:25–0:55 — Ingest & 위키 구조 (화면: UI에서 ingest 실행 → 생성된 wiki/ 파일 트리)
+> Agents do not only need more memory. They need current memory. Librarian is a
+> Qwen-powered MemoryAgent that keeps immutable source evidence, marks replaced
+> claims stale, and retrieves only the active facts that fit a limited context.
 
-**액션:** 데모 UI에서 텍스트 소스 하나 ingest → `memory/wiki/` 폴더와 `index.md` 열어 frontmatter/링크 표시.
+## 0:20-0:45 - Real Alibaba Cloud runtime
 
-**내레이션:**
-"Raw sources go in immutable. A light Qwen model — qwen-flash — distills them into wiki pages with frontmatter, links, and a global index. Every write is a structured JSON contract, never freeform."
+Screen: Alibaba Cloud Workbench connected to the running instance. Show the
+timestamp, `/health`, and deployed commit SHA without revealing account IDs,
+addresses that should remain private, or secrets.
 
-## 0:55–1:45 — ★ 망각 데모 (핵심 장면) (화면: 모순된 소스 2개 ingest → /lint 실행)
+Narration:
 
-**액션:**
-1. 소스 A ingest: "Our API rate limit is 100 requests/min."
-2. 소스 B ingest: "As of v2, the API rate limit is 1000 requests/min."
-3. `/lint` 실행 → conflict 탐지 결과 표시 → 구버전 페이지가 `archive/`로 이동하는 것을 파일 탐색기로 확인.
+> This FastAPI backend is running on Alibaba Cloud at commit `<EVIDENCE_SHA>`.
+> Its Markdown memory is on a persistent system disk outside the application
+> release, while bounded model calls go to Qwen Cloud.
 
-**내레이션:**
-"Here's the differentiator. I ingest two sources that contradict each other. Librarian's lint engine detects the conflict, escalates just this one judgment to the heavy model — qwen-plus — and archives the stale page. Nothing is deleted; it's moved to archive, auditable and reversible. The wiki stays small, current, and cheap to query."
+## 0:45-1:25 - Latest-write replacement with evidence
 
-## 1:45–2:25 — 토큰 효율 증거 (화면: BENCHMARK.md 결과 표 → bench 재실행 터미널)
+Screen: ingest the two approved vertical-slice sources and show the structured
+receipts.
 
-**내레이션:**
-"Does it actually save money? We benchmarked 12 questions across three A/B experiments with a strict success criterion: answers must be valid JSON *with citations pointing to real pages*. Surgical retrieval cuts tokens-per-successful-answer by **47%** versus full-context reads, and **51%** versus freeform prompting. And we're honest: light-first routing costs 30% more raw tokens in one setup — but per *successful* answer it still wins by 17%, because cost-per-success is the KPI that matters."
+1. Source A: `The production API quota is 100.`
+2. Source B: `This replaces the prior production API quota. The production API quota is 1000.`
 
-## 2:25–2:50 — 아키텍처 & MCP (화면: architecture.png → MCP 툴 목록)
+Narration:
 
-**내레이션:**
-"Everything runs on Qwen via Alibaba Cloud's DashScope API, with a two-tier model router. Librarian also ships as an **MCP server** — memory_ingest, memory_query, memory_lint, memory_stats — so any MCP client like Claude Code or an IDE agent gets persistent, self-cleaning memory for free. It's one Docker command to run anywhere."
+> Source A establishes a quota of one hundred. Source B explicitly replaces it
+> with one thousand. Qwen extracts claims, but deterministic evidence and
+> lifecycle validators decide whether state may change. The old claim is now
+> superseded, the new claim is active, and unrelated memory remains intact.
 
-## 2:50–3:00 — 클로징 (화면: repo README + Devpost)
+## 1:25-1:55 - Restart persistence
 
-**내레이션:**
-"Librarian: memory that forgets, so your agent remembers what matters — at half the cost. Code, benchmark, and Docker image are in the repo. Thank you."
+Screen: show the pre-restart state hash, restart the service or container in
+Workbench, then show the post-restart state hash and `/health` SHA.
 
----
+Narration:
 
-## 촬영 체크리스트
-- [ ] `docker compose up -d` + `/health` 200 확인
-- [ ] 모순 소스 A/B 텍스트 파일 미리 준비
-- [ ] BENCHMARK.md 표를 확대 표시 (숫자 3개: −47%, −51%, −17% 강조)
-- [ ] 화면 녹화 1080p, 마이크 테스트
-- [ ] 영어 자막 또는 영어 내레이션 (글로벌 심사)
+> I restart the application. The release changes independently from the memory
+> directory, so the canonical state and decision history survive. The before
+> and after memory hashes are identical: `<EVIDENCE_MEMORY_HASH>`.
+
+## 1:55-2:20 - Limited-context answer
+
+Screen: query the current production quota. Keep the answer, citation, selected
+context trace, top-K count, and token receipt visible.
+
+Narration:
+
+> The answer is one thousand and cites Source B. The stale value one hundred is
+> absent from both the answer and selected context. Librarian scores its graph
+> first and reads only the top-K pages, shown here as `<EVIDENCE_TOP_K>`.
+
+## 2:20-2:35 - Independent evaluation
+
+Screen: public holdout attestation only. Do not show private gold or the seed.
+
+Narration:
+
+> Promotion is an AND gate, not a model-graded score. An isolated evaluator ran
+> twenty-four private cases three times against the same candidate SHA. The
+> public attestation records hashes, aggregate metrics, and the final decision:
+> `<EVIDENCE_PROMOTION_DECISION>`.
+
+## 2:35-2:45 - Close
+
+Screen: public repository, MIT license, test URL.
+
+Narration:
+
+> Librarian: persistent memory that remembers the current truth and preserves
+> the evidence for how it changed.
+
+## Recording and publication checklist
+
+- [ ] Total duration is strictly less than 180 seconds.
+- [ ] English narration or complete English subtitles are present.
+- [ ] Video is publicly accessible without login on an allowed host.
+- [ ] Workbench, public demo, receipts, and repository all show the same SHA.
+- [ ] Alibaba deployment and restart are recorded live, not simulated locally.
+- [ ] Source B citation, top-K trace, token usage, and absence of stale `100` are visible.
+- [ ] No API key, health token, SSH key, account number, coupon code, or private IP is visible.
+- [ ] No private holdout gold, raw seed, or evaluator-only path is visible.
+- [ ] All `<EVIDENCE_...>` markers have been replaced from fresh receipts.
+- [ ] Title, description, repository, diagram, video, and running demo describe the same behavior.

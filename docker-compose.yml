@@ -1,12 +1,34 @@
 services:
   librarian:
-    build: .
+    build:
+      context: .
+      args:
+        LIBRARIAN_BUILD_SHA: ${LIBRARIAN_DEPLOYED_SHA:-local-uncommitted}
     container_name: librarian
+    user: "10001:10001"
     ports:
-      - "8080:8080"
+      - "${LIBRARIAN_BIND_ADDRESS:-127.0.0.1}:8080:8080"
     env_file:
-      - .env
+      - ${LIBRARIAN_ENV_FILE:-.env}
+    environment:
+      LIBRARIAN_MEMORY_ROOT: /app/memory
+      LIBRARIAN_DEPLOYED_SHA: ${LIBRARIAN_DEPLOYED_SHA:-local-uncommitted}
     volumes:
-      - ./memory:/app/memory
+      - type: bind
+        source: ${LIBRARIAN_MEMORY_HOST_PATH:-./memory}
+        target: /app/memory
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
     restart: unless-stopped
-
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3

@@ -1,0 +1,522 @@
+name: deploy-alibaba-exact-sha
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Full 40-hex commit SHA already reviewed for production
+        required: true
+        type: string
+      public_base_url:
+        description: HTTPS judge URL protected by the configured Basic Auth
+        required: true
+        type: string
+      approval_ticket:
+        description: Human approval or release ticket reference (no secrets)
+        required: true
+        type: string
+      cloud_approval_receipt_sha256:
+        description: SHA-256 of the masked, approved cloud entitlement/resource receipt
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: librarian-production
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.11.28"
+  PYTEST_ADDOPTS: "-p no:cacheprovider"
+
+jobs:
+  deploy:
+    name: live gate, host gate, deploy, and restart proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production
+    env:
+      SSH_HOST: ${{ secrets.ALIBABA_SSH_HOST }}
+      SSH_USER: ${{ secrets.ALIBABA_SSH_USER }}
+      SSH_PORT: ${{ vars.ALIBABA_SSH_PORT || '22' }}
+      PUBLIC_BASE_URL: ${{ inputs.public_base_url }}
+    steps:
+      - name: Check out only the approved candidate SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and approval inputs
+        id: candidate
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          APPROVAL_TICKET: ${{ inputs.approval_ticket }}
+          CLOUD_APPROVAL_SHA256: ${{ inputs.cloud_approval_receipt_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${CLOUD_APPROVAL_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          [[ "${PUBLIC_BASE_URL}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$ ]]
+          test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA}"
+          git diff --quiet
+          git diff --cached --quiet
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${CANDIDATE_SHA}" origin/main
+          APPROVAL_TICKET_SHA256="$(python - <<'PY'
+          import hashlib
+          import os
+
+          value = os.environ["APPROVAL_TICKET"].strip()
+          if not 3 <= len(value) <= 200 or value.casefold() in {"todo", "tbd", "replace_me"}:
+              raise SystemExit("approval ticket reference is missing or placeholder-shaped")
+          print(hashlib.sha256(value.encode("utf-8")).hexdigest())
+          PY
+          )"
+          echo "sha=${CANDIDATE_SHA}" >>"${GITHUB_OUTPUT}"
+          echo "approval_ticket_sha256=${APPROVAL_TICKET_SHA256}" >>"${GITHUB_OUTPUT}"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned uv and sync the lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+          uv sync --frozen
+
+      - name: Re-run deterministic and structural gates
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          uv run --frozen python deploy/scan-secrets.py
+          uv run --frozen pytest tests eval/tests -q
+          uv run --frozen python proof/live_qwen_contract.py self-test
+          pwsh ./scripts/preflight.ps1 -RepoRoot . -Mode ci -CandidateSha "${CANDIDATE_SHA}"
+
+      - name: Derive masked deployment target digest
+        id: deployment_target
+        shell: bash
+        env:
+          LIBRARIAN_TARGET_SSH_HOST: ${{ secrets.ALIBABA_SSH_HOST }}
+          LIBRARIAN_TARGET_SSH_PORT: ${{ vars.ALIBABA_SSH_PORT || '22' }}
+          LIBRARIAN_TARGET_SSH_HOST_KEY: ${{ secrets.ALIBABA_SSH_HOST_KEY }}
+          LIBRARIAN_TARGET_PUBLIC_BASE_URL: ${{ inputs.public_base_url }}
+        run: |
+          set -euo pipefail
+          TARGET_SHA256="$(uv run --frozen python deploy/verify-cloud-approval.py --print-target-sha256-from-env)"
+          [[ "${TARGET_SHA256}" =~ ^[0-9a-f]{64}$ ]]
+          echo "sha256=${TARGET_SHA256}" >>"${GITHUB_OUTPUT}"
+
+      - name: Verify candidate-bound masked cloud approval before live spend
+        shell: bash
+        env:
+          CLOUD_APPROVAL_SHA256: ${{ inputs.cloud_approval_receipt_sha256 }}
+          APPROVAL_TICKET_SHA256: ${{ steps.candidate.outputs.approval_ticket_sha256 }}
+          DEPLOYMENT_TARGET_SHA256: ${{ steps.deployment_target.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          uv run --frozen python deploy/verify-cloud-approval.py \
+            --receipt submission/evidence/cloud-approval-receipt.json \
+            --expected-sha256 "${CLOUD_APPROVAL_SHA256}" \
+            --approval-ticket-sha256 "${APPROVAL_TICKET_SHA256}" \
+            --expected-target-sha256 "${DEPLOYMENT_TARGET_SHA256}" \
+            --contract submission/hackathon-contract.json \
+            --evidence-manifest submission/evidence-manifest.json
+
+      - name: Build and run capped no-gold live Qwen container
+        id: live_gate
+        shell: bash
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          test -n "${DASHSCOPE_API_KEY}"
+          DATASET_DIR="${RUNNER_TEMP}/live-dataset"
+          LIVE_DIR="${RUNNER_TEMP}/live-gate"
+          IMAGE="librarian-live-gate:${CANDIDATE_SHA}"
+          CONTAINER="librarian-live-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "container=${CONTAINER}" >>"${GITHUB_OUTPUT}"
+          mkdir -p "${DATASET_DIR}" "${LIVE_DIR}"
+          uv run --frozen python -m eval.generate --split dev --output-dir "${DATASET_DIR}"
+          CANDIDATE_TREE_SHA256="$(uv run --frozen python -c \
+            'from pathlib import Path; from eval.contracts import candidate_tree_hash; print(candidate_tree_hash(Path.cwd()))')"
+          docker build \
+            --file proof/Dockerfile.live \
+            --label "org.opencontainers.image.revision=${CANDIDATE_SHA}" \
+            --tag "${IMAGE}" \
+            .
+          IMAGE_ID="$(docker image inspect --format '{{.Id}}' "${IMAGE}")"
+          docker run --name "${CONTAINER}" \
+            --env DASHSCOPE_API_KEY \
+            --env "LIVE_RUNTIME_ID=${IMAGE_ID}" \
+            --mount "type=bind,src=${DATASET_DIR}/runner-inputs/cases.jsonl,dst=/runner-inputs/cases.jsonl,readonly" \
+            --mount "type=bind,src=${DATASET_DIR}/dataset-manifest.json,dst=/dataset-manifest.json,readonly" \
+            --mount "type=bind,src=${LIVE_DIR},dst=/out" \
+            "${IMAGE}" run \
+              --cases /runner-inputs/cases.jsonl \
+              --dataset-manifest /dataset-manifest.json \
+              --output-dir /out \
+              --candidate-hash "${CANDIDATE_TREE_SHA256}" \
+              --limit 2 \
+              --max-calls 18 \
+              --max-total-tokens 25000 \
+              --max-requested-completion-tokens 10808 \
+              --max-seconds 600 \
+              --max-provider-errors 0 \
+              --max-user-chars 20000 \
+              --timeout-seconds 45
+          uv run --frozen python proof/live_qwen_contract.py attest-docker \
+            --container "${CONTAINER}" \
+            --output-dir "${LIVE_DIR}"
+          uv run --frozen python proof/live_qwen_contract.py evaluate \
+            --cases "${DATASET_DIR}/runner-inputs/cases.jsonl" \
+            --gold "${DATASET_DIR}/evaluator-only/gold.jsonl" \
+            --dataset-manifest "${DATASET_DIR}/dataset-manifest.json" \
+            --run-dir "${LIVE_DIR}"
+          LIVE_GATE_DIR="${LIVE_DIR}" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads((Path(os.environ["LIVE_GATE_DIR"]) / "live-metrics.json").read_text())
+          usage = report.get("provider_usage") or {}
+          if report.get("status") != "LIVE_QWEN_2CASE_PASS":
+              raise SystemExit("live Qwen behavioral contract did not pass")
+          if int(usage.get("provider_errors", -1)) != 0:
+              raise SystemExit("live Qwen behavioral contract recorded provider errors")
+          if not 0 < int(usage.get("calls", 0)) <= 18:
+              raise SystemExit("live Qwen call count exceeded its hard budget")
+          if not 0 < int(usage.get("total_tokens", 0)) <= 25000:
+              raise SystemExit("live Qwen token count exceeded its hard budget")
+          PY
+
+      - name: Remove live runner container after attestation
+        if: ${{ always() && steps.live_gate.outputs.container != '' }}
+        shell: bash
+        env:
+          CONTAINER: ${{ steps.live_gate.outputs.container }}
+        run: docker rm --force "${CONTAINER}" >/dev/null 2>&1 || true
+
+      - name: Package the exact Git archive
+        id: artifact
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/librarian-${CANDIDATE_SHA}.tar.gz"
+          git archive --format=tar.gz --output "${ARCHIVE}" "${CANDIDATE_SHA}"
+          ARCHIVE_SHA256="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+          test "$(gzip -dc "${ARCHIVE}" | git get-tar-commit-id)" = "${CANDIDATE_SHA}"
+          echo "path=${ARCHIVE}" >>"${GITHUB_OUTPUT}"
+          echo "sha256=${ARCHIVE_SHA256}" >>"${GITHUB_OUTPUT}"
+
+      - name: Configure pinned SSH host identity
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ALIBABA_SSH_PRIVATE_KEY }}
+          SSH_HOST_KEY: ${{ secrets.ALIBABA_SSH_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "${SSH_HOST}" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "${SSH_USER}" =~ ^[A-Za-z0-9._-]+$ ]]
+          [[ "${SSH_PORT}" =~ ^[0-9]{1,5}$ ]]
+          test -n "${SSH_PRIVATE_KEY}" && test -n "${SSH_HOST_KEY}"
+          install -d -m 0700 "${HOME}/.ssh"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${HOME}/.ssh/librarian_deploy"
+          printf '%s\n' "${SSH_HOST_KEY}" >"${HOME}/.ssh/known_hosts"
+          chmod 0600 "${HOME}/.ssh/librarian_deploy" "${HOME}/.ssh/known_hosts"
+
+      - name: Inspect approved host and create masked readiness receipt
+        id: infrastructure
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          CLOUD_APPROVAL_SHA256: ${{ inputs.cloud_approval_receipt_sha256 }}
+          APPROVAL_TICKET_SHA256: ${{ steps.candidate.outputs.approval_ticket_sha256 }}
+          DEPLOYMENT_TARGET_SHA256: ${{ steps.deployment_target.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          INSPECTOR="/tmp/librarian-inspect-${CANDIDATE_SHA}.py"
+          RECEIPT="/var/lib/librarian/deployments/infrastructure/${CANDIDATE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          scp -i "${HOME}/.ssh/librarian_deploy" -P "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            deploy/inspect-infrastructure.py "${REMOTE}:${INSPECTOR}"
+          set +e
+          INSPECTION_OUTPUT="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo python3 ${INSPECTOR} \
+              --candidate-sha ${CANDIDATE_SHA} \
+              --cloud-approval-receipt-sha256 ${CLOUD_APPROVAL_SHA256} \
+              --approval-ticket-sha256 ${APPROVAL_TICKET_SHA256} \
+              --expected-target-sha256 ${DEPLOYMENT_TARGET_SHA256} \
+              --output ${RECEIPT}" 2>&1)"
+          INSPECTION_STATUS=$?
+          set -e
+          printf '%s\n' "${INSPECTION_OUTPUT}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo cat ${RECEIPT}" >"${RUNNER_TEMP}/infrastructure-readiness.json"
+          echo "remote_path=${RECEIPT}" >>"${GITHUB_OUTPUT}"
+          exit "${INSPECTION_STATUS}"
+
+      - name: Bind live and infrastructure receipts to the candidate
+        id: release_gate
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          DEPLOYMENT_TARGET_SHA256: ${{ steps.deployment_target.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          RECEIPT="${RUNNER_TEMP}/release-gate.json"
+          uv run --frozen python deploy/verify-release-gate.py \
+            --candidate-sha "${CANDIDATE_SHA}" \
+            --live-metrics "${RUNNER_TEMP}/live-gate/live-metrics.json" \
+            --isolation-attestation "${RUNNER_TEMP}/live-gate/isolation-attestation.json" \
+            --infrastructure-readiness "${RUNNER_TEMP}/infrastructure-readiness.json" \
+            --expected-target-sha256 "${DEPLOYMENT_TARGET_SHA256}" \
+            --contract submission/hackathon-contract.json \
+            --output "${RECEIPT}"
+          echo "path=${RECEIPT}" >>"${GITHUB_OUTPUT}"
+          echo "sha256=$(sha256sum "${RECEIPT}" | awk '{print $1}')" >>"${GITHUB_OUTPUT}"
+
+      - name: Run candidate-bound deploy preflight
+        shell: pwsh
+        run: |
+          ./scripts/preflight.ps1 `
+            -RepoRoot . `
+            -Mode deploy `
+            -CandidateSha "${{ steps.candidate.outputs.sha }}" `
+            -ReleaseGateReceipt "${{ steps.release_gate.outputs.path }}"
+
+      - name: Read current release for deploy-script containment
+        id: previous
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          PREVIOUS="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            'if [ -L /opt/librarian/current ]; then basename "$(readlink -f /opt/librarian/current)"; else printf NONE; fi')"
+          if [[ "${PREVIOUS}" != "NONE" && ! "${PREVIOUS}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "remote current release is not managed" >&2
+            exit 1
+          fi
+          echo "sha=${PREVIOUS}" >>"${GITHUB_OUTPUT}"
+
+      - name: Upload candidate, release gate, and audited host scripts
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          ARCHIVE: ${{ steps.artifact.outputs.path }}
+          RELEASE_GATE: ${{ steps.release_gate.outputs.path }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          SCP=(scp -i "${HOME}/.ssh/librarian_deploy" -P "${SSH_PORT}" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          "${SCP[@]}" "${ARCHIVE}" "${REMOTE}:/tmp/librarian-${CANDIDATE_SHA}.tar.gz"
+          "${SCP[@]}" "${RELEASE_GATE}" "${REMOTE}:/tmp/librarian-release-gate-${CANDIDATE_SHA}.json"
+          "${SCP[@]}" deploy/deploy.sh "${REMOTE}:/tmp/librarian-deploy-${CANDIDATE_SHA}.sh"
+          "${SCP[@]}" deploy/finalize-release.py "${REMOTE}:/tmp/librarian-finalize-${CANDIDATE_SHA}.py"
+          "${SCP[@]}" deploy/rollback.sh "${REMOTE}:/tmp/librarian-rollback-${CANDIDATE_SHA}.sh"
+          "${SCP[@]}" deploy/verify-restart-persistence.sh "${REMOTE}:/tmp/librarian-verify-${CANDIDATE_SHA}.sh"
+
+      - name: Deploy immutable release
+        id: deploy
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          ARCHIVE_SHA256: ${{ steps.artifact.outputs.sha256 }}
+          RELEASE_GATE_SHA256: ${{ steps.release_gate.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          set +e
+          OUTPUT="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo bash /tmp/librarian-deploy-${CANDIDATE_SHA}.sh \
+              --sha ${CANDIDATE_SHA} \
+              --archive /tmp/librarian-${CANDIDATE_SHA}.tar.gz \
+              --archive-sha256 ${ARCHIVE_SHA256} \
+              --release-gate-receipt /tmp/librarian-release-gate-${CANDIDATE_SHA}.json \
+              --release-gate-sha256 ${RELEASE_GATE_SHA256}" 2>&1)"
+          DEPLOY_STATUS=$?
+          set -e
+          printf '%s\n' "${OUTPUT}"
+          MANIFEST="$(printf '%s\n' "${OUTPUT}" | sed -n 's/^deployment_manifest=//p')"
+          [[ "${MANIFEST}" =~ ^/var/lib/librarian/deployments/[A-Za-z0-9.-]+\.json$ ]]
+          echo "manifest=${MANIFEST}" >>"${GITHUB_OUTPUT}"
+          exit "${DEPLOY_STATUS}"
+
+      - name: Run Alibaba restart-persistence vertical slice
+        id: restart_proof
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          DEMO_USER: ${{ secrets.LIBRARIAN_DEMO_USER }}
+          DEMO_PASSWORD: ${{ secrets.LIBRARIAN_DEMO_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "${DEMO_USER}" =~ ^[A-Za-z0-9._~-]{1,64}$ ]]
+          test -n "${DEMO_PASSWORD}"
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          PROOF_NAMESPACE="release-proof-${CANDIDATE_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PROOF_DIR="/var/lib/librarian/deployments/proofs/${PROOF_NAMESPACE}"
+          PASSWORD_FILE="/tmp/librarian-proof-password-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "remote_dir=${PROOF_DIR}" >>"${GITHUB_OUTPUT}"
+          printf '%s' "${DEMO_PASSWORD}" \
+            | ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+                -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+                "umask 077; cat >${PASSWORD_FILE}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo bash /tmp/librarian-verify-${CANDIDATE_SHA}.sh \
+              --base-url ${PUBLIC_BASE_URL} \
+              --auth-user ${DEMO_USER} \
+              --auth-password-file ${PASSWORD_FILE} \
+              --expected-sha ${CANDIDATE_SHA} \
+              --proof-namespace ${PROOF_NAMESPACE} \
+              --output-dir ${PROOF_DIR}"
+
+      - name: Append candidate-bound release finalization receipt
+        id: finalization
+        if: ${{ steps.restart_proof.outcome == 'success' }}
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          DEPLOYMENT_MANIFEST: ${{ steps.deploy.outputs.manifest }}
+          PROOF_DIR: ${{ steps.restart_proof.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          [[ "${DEPLOYMENT_MANIFEST}" =~ ^/var/lib/librarian/deployments/[A-Za-z0-9.-]+\.json$ ]]
+          FINALIZATION="${DEPLOYMENT_MANIFEST%.json}.finalized.json"
+          RESTART_RECEIPT="${PROOF_DIR}/restart-persistence-receipt.json"
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo python3 /tmp/librarian-finalize-${CANDIDATE_SHA}.py \
+              --candidate-sha ${CANDIDATE_SHA} \
+              --deployment-manifest ${DEPLOYMENT_MANIFEST} \
+              --restart-proof ${RESTART_RECEIPT} \
+              --output ${FINALIZATION}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo cat ${FINALIZATION}" >"${RUNNER_TEMP}/release-finalization.json"
+          echo "remote_path=${FINALIZATION}" >>"${GITHUB_OUTPUT}"
+
+      - name: Roll back or stop an unverified release
+        if: ${{ always() && steps.deploy.outcome == 'success' && steps.finalization.outcome != 'success' }}
+        shell: bash
+        env:
+          PREVIOUS_SHA: ${{ steps.previous.outputs.sha }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          if [[ "${PREVIOUS_SHA}" == "NONE" ]]; then
+            ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+              'sudo systemctl stop librarian.service'
+            echo "No previous immutable release exists; unverified release remains stopped." >&2
+            exit 0
+          fi
+          [[ "${PREVIOUS_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          set +e
+          ROLLBACK_OUTPUT="$(ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo bash /tmp/librarian-rollback-${{ steps.candidate.outputs.sha }}.sh \
+              --sha ${PREVIOUS_SHA}" 2>&1)"
+          ROLLBACK_STATUS=$?
+          set -e
+          printf '%s\n' "${ROLLBACK_OUTPUT}"
+          ROLLBACK_MANIFEST="$(printf '%s\n' "${ROLLBACK_OUTPUT}" | sed -n 's/^rollback_manifest=//p')"
+          if [[ "${ROLLBACK_MANIFEST}" =~ ^/var/lib/librarian/deployments/[A-Za-z0-9.-]+\.json$ ]]; then
+            if ! ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+              "sudo cat ${ROLLBACK_MANIFEST}" >"${RUNNER_TEMP}/rollback-manifest.json"
+            then
+              ROLLBACK_STATUS=1
+            fi
+          else
+            ROLLBACK_STATUS=1
+          fi
+          if [[ "${ROLLBACK_STATUS}" -ne 0 ]]; then
+            ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+              'sudo systemctl stop librarian.service'
+            echo "Rollback or receipt collection failed; service remains stopped and memory was not rewound." >&2
+          else
+            echo "Previous immutable release restored; rollback receipt collected and memory retained." >&2
+          fi
+
+      - name: Collect restart-proof directory
+        if: ${{ always() && steps.restart_proof.outputs.remote_dir != '' }}
+        shell: bash
+        env:
+          PROOF_DIR: ${{ steps.restart_proof.outputs.remote_dir }}
+        run: |
+          set -euo pipefail
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo tar --create --gzip --file - --directory ${PROOF_DIR} ." \
+            >"${RUNNER_TEMP}/restart-persistence-proof.tar.gz"
+
+      - name: Collect release manifest
+        if: ${{ always() && steps.deploy.outputs.manifest != '' }}
+        shell: bash
+        env:
+          MANIFEST: ${{ steps.deploy.outputs.manifest }}
+        run: |
+          set -euo pipefail
+          [[ "${MANIFEST}" =~ ^/var/lib/librarian/deployments/[A-Za-z0-9.-]+\.json$ ]]
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "sudo cat ${MANIFEST}" >"${RUNNER_TEMP}/deployment-manifest.json"
+
+      - name: Remove transient remote credentials and uploads
+        if: ${{ always() }}
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          set +e
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          ssh -i "${HOME}/.ssh/librarian_deploy" -p "${SSH_PORT}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes "${REMOTE}" \
+            "rm -f \
+              /tmp/librarian-${CANDIDATE_SHA}.tar.gz \
+              /tmp/librarian-release-gate-${CANDIDATE_SHA}.json \
+              /tmp/librarian-deploy-${CANDIDATE_SHA}.sh \
+              /tmp/librarian-finalize-${CANDIDATE_SHA}.py \
+              /tmp/librarian-rollback-${CANDIDATE_SHA}.sh \
+              /tmp/librarian-verify-${CANDIDATE_SHA}.sh \
+              /tmp/librarian-inspect-${CANDIDATE_SHA}.py \
+              /tmp/librarian-proof-password-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Upload bounded release receipts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: alibaba-release-${{ steps.candidate.outputs.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            ${{ runner.temp }}/live-gate/
+            ${{ runner.temp }}/infrastructure-readiness.json
+            ${{ runner.temp }}/release-gate.json
+            ${{ runner.temp }}/deployment-manifest.json
+            ${{ runner.temp }}/rollback-manifest.json
+            ${{ runner.temp }}/release-finalization.json
+            ${{ runner.temp }}/restart-persistence-proof.tar.gz

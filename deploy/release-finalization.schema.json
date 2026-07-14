@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/librarian/release-finalization.schema.json",
+  "title": "Librarian append-only release finalization receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_at",
+    "candidate_sha",
+    "deployment_manifest",
+    "restart_persistence_proof"
+  ],
+  "properties": {
+    "schema_version": { "const": "librarian-release-finalization/v1" },
+    "status": { "const": "RELEASE_VERIFIED" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "candidate_sha": { "$ref": "#/$defs/commitSha" },
+    "deployment_manifest": { "$ref": "#/$defs/artifact" },
+    "restart_persistence_proof": { "$ref": "#/$defs/artifact" }
+  },
+  "$defs": {
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "status"],
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/librarian/release-manifest.schema.json",
+  "title": "Librarian release event manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "status",
+    "candidate_sha",
+    "previous_sha",
+    "release_path",
+    "memory_path",
+    "manifest_path",
+    "release_gate_receipt",
+    "started_at",
+    "completed_at",
+    "health",
+    "memory_integrity",
+    "restart_persistence_proof"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "librarian-release-event/v1"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}(-rollback)?$"
+    },
+    "event_type": {
+      "enum": ["deploy", "rollback"]
+    },
+    "status": {
+      "enum": ["DEPLOYED", "ROLLED_BACK", "FAILED"]
+    },
+    "candidate_sha": {
+      "$ref": "#/$defs/commitSha"
+    },
+    "previous_sha": {
+      "oneOf": [
+        { "$ref": "#/$defs/commitSha" },
+        { "type": "null" }
+      ]
+    },
+    "archive_sha256": {
+      "oneOf": [
+        { "$ref": "#/$defs/sha256" },
+        { "type": "null" }
+      ]
+    },
+    "release_path": {
+      "type": "string",
+      "pattern": "^/opt/librarian/releases/[0-9a-f]{40}$"
+    },
+    "memory_path": {
+      "const": "/var/lib/librarian/memory"
+    },
+    "manifest_path": {
+      "type": "string",
+      "pattern": "^/var/lib/librarian/deployments/.+\\.json$"
+    },
+    "release_gate_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/var/lib/librarian/deployments/.+\\.release-gate\\.json$"
+        },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "status", "response_sha256"],
+      "properties": {
+        "url": { "const": "http://127.0.0.1:8080/health" },
+        "status": { "enum": ["PASS", "FAIL", "NOT_RUN"] },
+        "response_sha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "memory_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "before_sha256",
+        "after_sha256",
+        "pre_candidate_sha256",
+        "bootstrap_applied"
+      ],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "NOT_RUN"] },
+        "before_sha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        },
+        "after_sha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        },
+        "pre_candidate_sha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/sha256" },
+            { "type": "null" }
+          ]
+        },
+        "bootstrap_applied": { "type": "boolean" }
+      }
+    },
+    "restart_persistence_proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "receipt_path"],
+      "properties": {
+        "status": { "enum": ["PENDING_WAVE_5", "PASS", "FAIL"] },
+        "receipt_path": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["line", "exit_code"],
+          "properties": {
+            "line": { "type": "integer", "minimum": 1 },
+            "exit_code": { "type": "integer", "minimum": 1 }
+          }
+        },
+        { "type": "null" }
+      ]
+    }
+  },
+  "$defs": {
+    "commitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

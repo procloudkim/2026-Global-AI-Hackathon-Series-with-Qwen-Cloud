@@ -8,4 +8,7 @@ wiki
 .env
 bench/results.json
 bench/results.md
+eval/private
+eval/runs
+proof/runs
 

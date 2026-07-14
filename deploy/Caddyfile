@@ -1,0 +1,45 @@
+{
+	admin off
+}
+
+# Required environment, loaded by the systemd drop-in created by setup.sh:
+#   LIBRARIAN_DOMAIN=<static-ip>.sslip.io
+#   LIBRARIAN_BASIC_AUTH_USER=librarian
+#   LIBRARIAN_BASIC_AUTH_HASH=<output of: caddy hash-password>
+#
+# Caddy's standard distribution has no in-process rate-limit directive. Basic
+# Auth, a 64 KiB body cap, the application's rate limiter, and Alibaba security
+# group ingress limits are the supported abuse controls for this deployment.
+{$LIBRARIAN_DOMAIN} {
+	encode zstd gzip
+
+	@qwen_health path /health/qwen
+	respond @qwen_health 404
+
+	@process_health {
+		path /health
+		method GET HEAD
+	}
+	handle @process_health {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	@invalid_health_method path /health
+	respond @invalid_health_method 405
+
+	handle {
+		basic_auth {
+			{$LIBRARIAN_BASIC_AUTH_USER:librarian} {$LIBRARIAN_BASIC_AUTH_HASH}
+		}
+		request_body {
+			max_size 64KB
+		}
+		header {
+			-Server
+			X-Content-Type-Options nosniff
+			Referrer-Policy no-referrer
+			Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		}
+		reverse_proxy 127.0.0.1:8080
+	}
+}

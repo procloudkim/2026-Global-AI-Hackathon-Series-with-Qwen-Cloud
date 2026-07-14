@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "dataset": {
+    "scenario_types": [
+      "explicit_supersession",
+      "future_effective",
+      "correction_rollback",
+      "scope_coexistence",
+      "unresolved_conflict",
+      "non_numeric_change",
+      "distractor_retrieval",
+      "duplicate_restore"
+    ],
+    "dev_variants_per_type": 1,
+    "holdout_variants_per_type": 3,
+    "holdout_min_scenarios": 24,
+    "distractor_count": 50
+  },
+  "primary_lane": {
+    "policies": ["B0", "B1", "B2", "C"],
+    "policy_definitions": {
+      "B0": "append-only memory plus full-read retrieval",
+      "B1": "append-only memory plus lexical top-k retrieval",
+      "B2": "scope-subject-predicate latest-write-wins plus top-k retrieval",
+      "C": "reference claim lifecycle plus index-first retrieval"
+    },
+    "shared_conditions": {
+      "extraction_snapshot": true,
+      "answer_adapter": "deterministic-structured-v1",
+      "temperature": 0,
+      "top_k": 3,
+      "context_budget": 4000
+    }
+  },
+  "production_conformance_lane": {
+    "policies": ["C"],
+    "candidate_factory": "src.librarian.eval_adapter:create_adapter",
+    "baseline_comparison_allowed": false,
+    "promotion_allowed": false
+  },
+  "metrics": {
+    "primary": "current_cited_answer_success",
+    "reported": [
+      "scenario_success_rate",
+      "stale_leakage_rate",
+      "false_forget_rate",
+      "state_transition_accuracy",
+      "abstention_accuracy",
+      "citation_entailment",
+      "retrieval_recall_at_k",
+      "context_tokens",
+      "tokens_per_correct_current_answer"
+    ]
+  },
+  "promotion_gates": {
+    "gate_name": "deterministic_policy_gate",
+    "candidate_policy": "C",
+    "minimum_scenario_success_count": 21,
+    "minimum_scenario_count": 24,
+    "maximum_stale_leakage_rate": 0.05,
+    "maximum_scope_false_forget_count": 0,
+    "minimum_citation_entailment": 0.95,
+    "minimum_retrieval_recall_at_k": 0.9,
+    "minimum_state_transition_accuracy": 1.0,
+    "maximum_state_violation_count": 0,
+    "minimum_abstention_accuracy": 1.0,
+    "minimum_transition_ledger_integrity": 1.0,
+    "maximum_transition_ledger_violation_count": 0,
+    "minimum_b2_success_delta": 0.15,
+    "minimum_b0_token_reduction_per_correct": 0.3,
+    "minimum_passing_repeats": 2,
+    "required_repeats": 3
+  },
+  "kill_rules": {
+    "maximum_b2_negligible_delta": 0.05,
+    "maximum_stale_leakage_rate": 0.1,
+    "maximum_valid_claim_false_forget_count": 0,
+    "require_candidate_to_beat_b2": true,
+    "qwen_grader_is_sufficient": false
+  },
+  "run_budget": {
+    "maximum_answer_calls": 1000,
+    "maximum_total_tokens": 750000,
+    "maximum_wall_seconds": 3600,
+    "maximum_consecutive_provider_errors": 5
+  },
+  "leakage_controls": {
+    "runner_must_not_receive_gold": true,
+    "gold_generator": "deterministic-policy-oracle-v1",
+    "model_as_grader": false,
+    "secret_seed_transport": "HOLDOUT_SEED environment variable only",
+    "commitment": "sha256",
+    "candidate_change_after_holdout_materialization_invalidates_holdout": true,
+    "analysis_unit": "scenario",
+    "semantic_relation_labels_in_runner": false,
+    "hidden_query_key_in_runner": false,
+    "deterministic_repeats_are_independent_samples": false,
+    "offline_fixture_can_promote": false
+  },
+  "external_attestation": {
+    "schema_version": "1.0",
+    "signature_algorithm": "rsa-pkcs1v15-sha256",
+    "minimum_rsa_bits": 2048,
+    "trusted_key_is_external_input": true,
+    "require_evaluated_sha_to_equal_deployed_sha": true,
+    "require_current_candidate_tree_hash": true,
+    "required_isolation_status": "runner_and_candidate_isolated_from_oracle",
+    "non_isolated_gate_status": "NOT_ELIGIBLE_GOLD_NOT_ISOLATED"
+  }
+}

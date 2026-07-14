@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "split": "dev",
+  "seed": "librarian-public-dev-seed-v1",
+  "variants_per_type": 1,
+  "distractor_count": 50
+}

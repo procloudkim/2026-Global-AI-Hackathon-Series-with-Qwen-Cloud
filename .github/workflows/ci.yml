@@ -1,0 +1,75 @@
+name: deterministic-ci
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.11.28"
+  PYTEST_ADDOPTS: "-p no:cacheprovider"
+
+jobs:
+  deterministic:
+    name: deterministic contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the event SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact checkout and no live-provider credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -z "${DASHSCOPE_API_KEY:-}"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned uv
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+
+      - name: Sync locked dependencies
+        shell: bash
+        run: uv sync --frozen
+
+      - name: Scan committed content for credential-shaped values
+        shell: bash
+        run: uv run --frozen python deploy/scan-secrets.py
+
+      - name: Run deterministic application tests
+        shell: bash
+        run: uv run --frozen pytest tests -q
+
+      - name: Run evaluator contract tests
+        shell: bash
+        run: |
+          uv run --frozen pytest eval/tests -q
+          uv run --frozen python proof/live_qwen_contract.py self-test
+
+      - name: Run contract preflight in CI mode
+        shell: pwsh
+        run: ./scripts/preflight.ps1 -RepoRoot . -Mode ci
+
+      - name: Build non-root runtime image for the exact SHA
+        shell: bash
+        run: |
+          docker build \
+            --build-arg "LIBRARIAN_BUILD_SHA=${GITHUB_SHA}" \
+            --tag "librarian:${GITHUB_SHA}" \
+            .

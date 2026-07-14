@@ -31,8 +31,14 @@ class LLMResult:
 class ModelRouter:
     def __init__(self) -> None:
         s = get_settings()
-        self._client = OpenAI(api_key=s.api_key, base_url=s.base_url)
+        self._client = OpenAI(
+            api_key=s.api_key,
+            base_url=s.base_url,
+            timeout=s.request_timeout_seconds,
+            max_retries=s.max_retries,
+        )
         self._models = {Tier.LIGHT: s.light_model, Tier.HEAVY: s.heavy_model}
+        self._max_completion_tokens = s.max_completion_tokens
 
     def chat(
         self,
@@ -42,6 +48,13 @@ class ModelRouter:
         temperature: float = 0.3,
         max_tokens: int | None = None,
     ) -> LLMResult:
+        if max_tokens is None:
+            raise ValueError("every Qwen call requires max_tokens")
+        if not 1 <= max_tokens <= self._max_completion_tokens:
+            raise ValueError(
+                "max_tokens must be between 1 and "
+                f"{self._max_completion_tokens}"
+            )
         model = self._models[tier]
         resp = self._client.chat.completions.create(
             model=model,

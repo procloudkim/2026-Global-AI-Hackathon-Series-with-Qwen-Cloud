@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/librarian/cloud-approval.schema.json",
+  "title": "Masked Alibaba runtime approval receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "approval_status",
+    "approved_at",
+    "approval_expires_at",
+    "resource_retention_through",
+    "candidate_tree_sha256",
+    "approval_ticket_sha256",
+    "deployment_target_sha256",
+    "runtime",
+    "compute_eligibility",
+    "max_unapproved_spend_usd",
+    "approved_max_spend_usd",
+    "controls",
+    "masked_evidence_sha256",
+    "account_identifiers"
+  ],
+  "properties": {
+    "schema_version": { "const": "librarian-cloud-approval/v1" },
+    "status": { "const": "APPROVED" },
+    "approval_status": {
+      "enum": ["APPROVED_ZERO_COST", "APPROVED_PAID_WITH_CEILING"]
+    },
+    "approved_at": { "type": "string", "format": "date-time" },
+    "approval_expires_at": { "type": "string", "format": "date-time" },
+    "resource_retention_through": { "type": "string", "format": "date-time" },
+    "candidate_tree_sha256": { "$ref": "#/$defs/sha256" },
+    "approval_ticket_sha256": { "$ref": "#/$defs/sha256" },
+    "deployment_target_sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 of the canonical deployment target contract; raw host, host key, and account identifiers are omitted."
+    },
+    "runtime": {
+      "enum": [
+        "ecs_trial",
+        "sas_trial",
+        "coupon_covered_ecs",
+        "coupon_covered_sas",
+        "minimal_paid_ecs",
+        "minimal_paid_sas"
+      ]
+    },
+    "compute_eligibility": { "const": "VERIFIED" },
+    "max_unapproved_spend_usd": { "const": 0 },
+    "approved_max_spend_usd": { "type": "number", "minimum": 0 },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benefit_or_billing_scope_verified",
+        "overage_disabled_or_hard_capped",
+        "automatic_renewal_disabled",
+        "budget_alert_configured",
+        "spending_alert_configured",
+        "persistent_storage_verified",
+        "public_ip_verified",
+        "security_group_reviewed",
+        "workbench_access_verified",
+        "resource_creation_explicitly_approved"
+      ],
+      "properties": {
+        "benefit_or_billing_scope_verified": { "const": true },
+        "overage_disabled_or_hard_capped": { "const": true },
+        "automatic_renewal_disabled": { "const": true },
+        "budget_alert_configured": { "const": true },
+        "spending_alert_configured": { "const": true },
+        "persistent_storage_verified": { "const": true },
+        "public_ip_verified": { "const": true },
+        "security_group_reviewed": { "const": true },
+        "workbench_access_verified": { "const": true },
+        "resource_creation_explicitly_approved": { "const": true }
+      }
+    },
+    "masked_evidence_sha256": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sha256" }
+    },
+    "account_identifiers": { "const": "masked_or_omitted" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

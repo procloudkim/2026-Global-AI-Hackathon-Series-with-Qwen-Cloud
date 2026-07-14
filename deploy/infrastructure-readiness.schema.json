@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/librarian/infrastructure-readiness.schema.json",
+  "title": "Librarian host infrastructure readiness receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "observed_at",
+    "candidate_sha",
+    "provider_signal",
+    "cloud_approval_receipt_sha256",
+    "approval_ticket_sha256",
+    "deployment_target_sha256",
+    "checks",
+    "runtime_contract",
+    "runtime_limits",
+    "storage"
+  ],
+  "properties": {
+    "schema_version": { "const": "librarian-infrastructure-readiness/v1" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "candidate_sha": { "$ref": "#/$defs/commitSha" },
+    "provider_signal": { "enum": ["alibaba_cloud_dmi", "unverified"] },
+    "cloud_approval_receipt_sha256": { "$ref": "#/$defs/sha256" },
+    "approval_ticket_sha256": { "$ref": "#/$defs/sha256" },
+    "deployment_target_sha256": { "$ref": "#/$defs/sha256" },
+    "checks": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["passed", "detail"],
+        "properties": {
+          "passed": { "type": "boolean" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "runtime_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qwen_max_retries",
+        "qwen_timeout_seconds",
+        "qwen_max_completion_tokens",
+        "rate_limit_per_minute"
+      ],
+      "properties": {
+        "qwen_max_retries": { "const": 0 },
+        "qwen_timeout_seconds": { "type": "number", "minimum": 1, "maximum": 45 },
+        "qwen_max_completion_tokens": { "type": "integer", "minimum": 8, "maximum": 1600 },
+        "rate_limit_per_minute": { "type": "integer", "minimum": 1, "maximum": 60 }
+      }
+    },
+    "runtime_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_url", "light_model", "heavy_model"],
+      "properties": {
+        "base_url": {
+          "const": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+        },
+        "light_model": { "const": "qwen-flash" },
+        "heavy_model": { "const": "qwen-plus-2025-07-28" }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mount_target", "filesystem_type", "available_bytes"],
+      "properties": {
+        "mount_target": { "type": "string" },
+        "filesystem_type": { "type": "string" },
+        "available_bytes": { "type": "integer", "minimum": 1073741824 }
+      }
+    }
+  },
+  "$defs": {
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

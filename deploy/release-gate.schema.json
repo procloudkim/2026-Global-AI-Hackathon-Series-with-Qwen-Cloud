@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/librarian/release-gate.schema.json",
+  "title": "Librarian exact-candidate release gate receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_at",
+    "candidate_sha",
+    "candidate_tree_sha256",
+    "deployment_target_sha256",
+    "official_contract_age_hours",
+    "limits",
+    "evidence_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "librarian-release-gate/v1" },
+    "status": { "const": "PASS" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "candidate_sha": { "$ref": "#/$defs/commitSha" },
+    "candidate_tree_sha256": { "$ref": "#/$defs/sha256" },
+    "deployment_target_sha256": { "$ref": "#/$defs/sha256" },
+    "official_contract_age_hours": { "type": "number", "minimum": -1, "maximum": 72 },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_calls", "maximum_total_tokens", "maximum_provider_errors"],
+      "properties": {
+        "maximum_calls": { "const": 18 },
+        "maximum_total_tokens": { "const": 25000 },
+        "maximum_provider_errors": { "const": 0 }
+      }
+    },
+    "evidence_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["live_metrics", "isolation_attestation", "infrastructure_readiness", "contract"],
+      "properties": {
+        "live_metrics": { "$ref": "#/$defs/sha256" },
+        "isolation_attestation": { "$ref": "#/$defs/sha256" },
+        "infrastructure_readiness": { "$ref": "#/$defs/sha256" },
+        "contract": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

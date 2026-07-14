@@ -1,0 +1,453 @@
+{
+  "schema_version": "1.0.0",
+  "contract_id": "qwen-cloud-hackathon-2026-track-1",
+  "canonical": true,
+  "authority_order": [
+    "devpost_rules_details_current_form_announcements_key_dates",
+    "qwen_cloud_and_alibaba_cloud_official_documentation",
+    "logged_in_account_console",
+    "current_repository_source_tests_and_runtime_receipts",
+    "repository_documentation"
+  ],
+  "snapshot": {
+    "status": "public_contract_verified_authenticated_form_hash_pending",
+    "audit_window": {
+      "start": "2026-07-14T12:44:18.586+09:00",
+      "end": "2026-07-14T12:46:29.848+09:00",
+      "precision": "public contract was re-read at 12:44 KST; exact HTTP response fetch timestamps and body-byte hashes were captured at 12:46 KST"
+    },
+    "timezone": "Asia/Seoul",
+    "source_content_hashes_complete": false,
+    "hash_method": "SHA-256 of the exact HTTP response body bytes returned for that fetch; dynamic pages must be refreshed before submission",
+    "freshness": {
+      "max_age_hours": {
+        "ci": 168,
+        "deploy": 72,
+        "submit": 24
+      },
+      "refresh_before_submission": true
+    }
+  },
+  "sources": [
+    {
+      "id": "devpost_rules",
+      "url": "https://qwencloud-hackathon.devpost.com/rules",
+      "role": "legal and mandatory requirement source of truth",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:26.6368837Z",
+        "window_end": "2026-07-14T03:46:26.6368837Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "4e8dfc7ff870e7572d0313e32eec19eaa639106e3888d4054fc6136d1fc97a8c",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_details",
+      "url": "https://qwencloud-hackathon.devpost.com/details",
+      "role": "event details landing page",
+      "observation_status": "unavailable",
+      "http_status": 404,
+      "fetched_at": {
+        "window_start": "2026-07-14T12:44:18.586+09:00",
+        "window_end": "2026-07-14T12:44:18.586+09:00",
+        "precision": "audit_window_only"
+      },
+      "content_sha256": null,
+      "hash_status": "not_captured_page_unavailable",
+      "hash_required_for_submission": false
+    },
+    {
+      "id": "devpost_key_dates",
+      "url": "https://qwencloud-hackathon.devpost.com/details/dates",
+      "role": "current key dates display; Rules prevails if wording conflicts",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:28.5105025Z",
+        "window_end": "2026-07-14T03:46:28.5105025Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "59f8ccbc5859f7cef654a27fe63f0406a0cdb1a3e144b65328a869aca0f5d87e",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_current_submission_form",
+      "url": "https://qwencloud-hackathon.devpost.com/",
+      "surface": "logged-in current submission form",
+      "role": "current required fields, field identifiers, and upload constraints",
+      "observation_status": "verified_in_authenticated_session",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T11:45:00+09:00",
+        "window_end": "2026-07-14T12:00:00+09:00",
+        "precision": "audit_window_only"
+      },
+      "content_sha256": null,
+      "hash_status": "not_captured_authenticated_surface",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_updates",
+      "url": "https://qwencloud-hackathon.devpost.com/updates",
+      "surface": "public announcements index",
+      "role": "event notices and announcement discovery",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:28.7745198Z",
+        "window_end": "2026-07-14T03:46:28.7745198Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "8f772fad7b2942b7fbe6ca724d7f9e0278665f9ff095622d12ac5b1fb72268d3",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_deadline_extension_announcement",
+      "url": "https://qwencloud-hackathon.devpost.com/updates/45184-more-time-to-build-submission-deadline-extended-to-july-20",
+      "role": "deadline-extension announcement; Rules controls the normalized legal deadline",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:29.1453452Z",
+        "window_end": "2026-07-14T03:46:29.1453452Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "8b133840e074d9a28ce289b51e3a95e92b4300ec8998756972f9bf847310ae4f",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_deployment_proof_announcement",
+      "url": "https://qwencloud-hackathon.devpost.com/updates/45055-proof-of-deployment-101-what-judges-need-to-see",
+      "role": "mandatory Alibaba deployment code URL and Workbench screenshot clarification",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:29.5791191Z",
+        "window_end": "2026-07-14T03:46:29.5791191Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "03f43c0161de22501080b0144b9f9c274d819e4ead9dc31f93afc778ca15251f",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "devpost_credit_announcement",
+      "url": "https://qwencloud-hackathon.devpost.com/updates/45198-waiting-on-your-credits-here-s-everything-you-need-to-know",
+      "role": "Qwen inference free-tier eligibility announcement; not evidence of Compute eligibility",
+      "observation_status": "verified",
+      "http_status": 200,
+      "fetched_at": {
+        "window_start": "2026-07-14T03:46:29.8484037Z",
+        "window_end": "2026-07-14T03:46:29.8484037Z",
+        "precision": "exact_request_start"
+      },
+      "content_sha256": "4a06383d715367313124117432b57f54272abd1a5e248c35ee0d87f271a9759a",
+      "hash_status": "captured",
+      "hash_required_for_submission": true
+    },
+    {
+      "id": "qwen_cloud_docs",
+      "url": "https://docs.qwencloud.com/",
+      "role": "official Qwen Cloud product documentation",
+      "observation_status": "official_source_referenced_not_content_frozen",
+      "http_status": null,
+      "fetched_at": {
+        "window_start": "2026-07-14T11:45:00+09:00",
+        "window_end": "2026-07-14T12:00:00+09:00",
+        "precision": "audit_window_only"
+      },
+      "content_sha256": null,
+      "hash_status": "not_captured",
+      "hash_required_for_submission": false
+    },
+    {
+      "id": "alibaba_cloud_help",
+      "url": "https://www.alibabacloud.com/help/",
+      "role": "official Alibaba Cloud product documentation",
+      "observation_status": "official_source_referenced_not_content_frozen",
+      "http_status": null,
+      "fetched_at": {
+        "window_start": "2026-07-14T11:45:00+09:00",
+        "window_end": "2026-07-14T12:00:00+09:00",
+        "precision": "audit_window_only"
+      },
+      "content_sha256": null,
+      "hash_status": "not_captured",
+      "hash_required_for_submission": false
+    }
+  ],
+  "deadlines": {
+    "submission": {
+      "source": "devpost_rules",
+      "start_local_display": "2026-05-26T08:00:00-07:00",
+      "start_utc": "2026-05-26T15:00:00Z",
+      "local_display": "2026-07-20T14:00:00-07:00",
+      "utc": "2026-07-20T21:00:00Z",
+      "asia_seoul": "2026-07-21T06:00:00+09:00"
+    },
+    "judging": {
+      "source": "devpost_rules",
+      "start_local_display": "2026-07-28T08:00:00-07:00",
+      "start_utc": "2026-07-28T15:00:00Z",
+      "start_asia_seoul": "2026-07-29T00:00:00+09:00",
+      "end_local_display": "2026-08-11T14:00:00-07:00",
+      "end_utc": "2026-08-11T21:00:00Z",
+      "end_asia_seoul": "2026-08-12T06:00:00+09:00"
+    },
+    "winners_announcement": {
+      "status": "verified_on_or_about",
+      "source": "devpost_rules",
+      "local_display": "2026-08-17T14:00:00-07:00",
+      "utc": "2026-08-17T21:00:00Z",
+      "asia_seoul": "2026-08-18T06:00:00+09:00"
+    }
+  },
+  "source_conflicts": [
+    {
+      "id": "submission_start_and_judging_start",
+      "higher_authority": "devpost_rules",
+      "lower_authority": "devpost_key_dates",
+      "conflict": "The dates page shows submission start 2026-05-25 23:45 PDT and judging start 2026-07-28 10:00 PDT, while Rules shows 2026-05-26 08:00 PT and 2026-07-28 08:00 PT.",
+      "resolution": "Use Rules because Rules explicitly prevails over inconsistent site, form, and advertising text."
+    },
+    {
+      "id": "judging_weight_wording",
+      "higher_authority": "explicit_percentages_within_devpost_rules",
+      "lower_authority": "equally_weighted_sentence_within_devpost_rules",
+      "conflict": "Rules calls the criteria equally weighted but lists 30, 30, 25, and 15 percent.",
+      "resolution": "Use the explicit percentages, which total 100, and retain this conflict until organizer clarification."
+    },
+    {
+      "id": "deployment_duration",
+      "higher_authority": "devpost_rules",
+      "lower_authority": "devpost_deployment_proof_announcement",
+      "conflict": "The announcement accepts proof that a project was deployed at some point; Rules requires consistent operation and free judge access through judging.",
+      "resolution": "Apply the stricter Rules requirement."
+    }
+  ],
+  "target_track": {
+    "id": "track_1",
+    "label": "MemoryAgent",
+    "official_contract": [
+      "Use a Qwen model provided through Qwen Cloud.",
+      "Run the backend on Alibaba Cloud.",
+      "Provide persistent memory, autonomous experience accumulation, preference recall, and increasingly accurate cross-session decisions.",
+      "Address efficient storage and retrieval, timely forgetting, and limited-context recall.",
+      "Keep the project running on its intended platform and consistent with the video and description.",
+      "Provide judges a free website, demo, or test build through the judging period."
+    ],
+    "release_thesis": "Under the same update stream, answer model, answer prompt, top-K, and context budget, Librarian must cite current facts more accurately than a strong latest-write-wins baseline, reduce both stale leakage and false forgetting, and restore the same active memory state after process restart.",
+    "internal_and_gates": [
+      "persistent_accumulation",
+      "timely_forgetting",
+      "limited_context_recall",
+      "increasingly_accurate_decisions",
+      "safe_forgetting",
+      "live_qwen_contract_success",
+      "alibaba_cloud_restart_persistence",
+      "independent_private_holdout_promotion",
+      "official_submission_contract_compliance"
+    ]
+  },
+  "mandatory_requirements": [
+    {
+      "id": "track_selection",
+      "classification": "mandatory",
+      "rule": "Select Track 1 MemoryAgent in the current form.",
+      "source_ids": ["devpost_rules", "devpost_current_submission_form"]
+    },
+    {
+      "id": "qwen_cloud_model",
+      "classification": "mandatory",
+      "rule": "Use a Qwen model provided through Qwen Cloud.",
+      "source_ids": ["devpost_rules", "qwen_cloud_docs"]
+    },
+    {
+      "id": "alibaba_cloud_backend",
+      "classification": "mandatory",
+      "rule": "The backend must actually run on Alibaba Cloud; no specific ECS, Function Compute, database, vector database, or MCP product is prescribed.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "persistent_working_project",
+      "classification": "mandatory",
+      "rule": "The project must keep running on its intended platform and match the submitted video and description.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "free_judge_access",
+      "classification": "mandatory",
+      "rule": "Provide judges a free website, demo, or test build and keep it accessible at least through the judging period.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "public_repository",
+      "classification": "mandatory",
+      "rule": "Provide a public source repository.",
+      "source_ids": ["devpost_rules", "devpost_current_submission_form"]
+    },
+    {
+      "id": "open_source_license",
+      "classification": "mandatory",
+      "rule": "Expose a detectable open-source license in the public repository.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "alibaba_code_proof",
+      "classification": "mandatory",
+      "rule": "Provide a code-file URL showing Alibaba Cloud or Qwen Cloud use.",
+      "source_ids": ["devpost_rules", "devpost_current_submission_form", "devpost_deployment_proof_announcement"]
+    },
+    {
+      "id": "architecture_diagram",
+      "classification": "mandatory",
+      "rule": "Upload an English architecture diagram.",
+      "constraints": {
+        "accepted_extensions": ["pdf", "png", "jpg", "jpeg"],
+        "max_megabytes": 35
+      },
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "workbench_screenshot",
+      "classification": "mandatory",
+      "rule": "Upload an Alibaba Cloud Workbench deployment screenshot.",
+      "constraints": {
+        "accepted_extensions": ["png", "jpg", "jpeg"],
+        "max_megabytes": 35
+      },
+      "source_ids": ["devpost_current_submission_form", "devpost_deployment_proof_announcement"]
+    },
+    {
+      "id": "public_demo_video",
+      "classification": "mandatory",
+      "rule": "Provide a public demo video shorter than three minutes.",
+      "constraints": {
+        "maximum_seconds_exclusive": 180,
+        "rules_named_hosts": ["youtube.com", "vimeo.com", "youku.com"]
+      },
+      "source_ids": ["devpost_rules", "devpost_current_submission_form"]
+    },
+    {
+      "id": "english_materials",
+      "classification": "mandatory",
+      "rule": "Submission materials must be in English or include an English translation.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "text_description",
+      "classification": "mandatory",
+      "rule": "Provide a project text description in the submission.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "authorized_integrations",
+      "classification": "mandatory",
+      "rule": "Use only authorized third-party integrations and comply with their terms.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "original_and_ip_compliant_work",
+      "classification": "mandatory",
+      "rule": "Submit original work and use only content, code, and media for which the entrant has the required rights.",
+      "source_ids": ["devpost_rules"]
+    },
+    {
+      "id": "existing_project_update",
+      "classification": "mandatory_if_existing_project",
+      "rule": "For an existing project, explain meaningful changes made after 2026-05-26.",
+      "source_ids": ["devpost_rules", "devpost_current_submission_form"]
+    },
+    {
+      "id": "testing_instructions",
+      "classification": "mandatory_form_field",
+      "rule": "Provide reproducible judge testing instructions.",
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "ai_tools_disclosure",
+      "classification": "mandatory_form_field",
+      "rule": "Accurately disclose AI tools used.",
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "learning_summary",
+      "classification": "mandatory_form_field",
+      "rule": "Provide the current form's learning summary answer.",
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "eligibility_confirmations",
+      "classification": "mandatory_form_field",
+      "rule": "Complete the current eligibility confirmations truthfully.",
+      "source_ids": ["devpost_current_submission_form"]
+    }
+  ],
+  "optional_items": [
+    {
+      "id": "blog_or_social_post",
+      "classification": "optional",
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "mcp_vector_database_or_multi_agent_depth",
+      "classification": "optional_technical_signal_not_contract",
+      "rule": "MCP, a vector database, a particular database, and multi-agent expansion are not mandatory Track 1 infrastructure choices.",
+      "source_ids": ["devpost_rules"]
+    }
+  ],
+  "judging_criteria": {
+    "status": "verified_with_source_conflict",
+    "stage_1": {
+      "kind": "pass_fail",
+      "checks": [
+        "baseline_viability",
+        "theme_fit",
+        "required_api_or_sdk_use"
+      ]
+    },
+    "stage_2": [
+      {"label": "Innovation & AI Creativity", "weight_percent": 30},
+      {"label": "Technical Depth & Engineering", "weight_percent": 30},
+      {"label": "Problem Value & Impact", "weight_percent": 25},
+      {"label": "Presentation & Documentation", "weight_percent": 15}
+    ],
+    "source_ids": ["devpost_rules"],
+    "note": "Rules also says equally weighted; the explicit percentages are used because they total 100. This is recorded in source_conflicts."
+  },
+  "submission_fields_basis": "Required, optional, and conditional flags reflect the authenticated current submission-form UI observed during the 2026-07-14 audit unless a field entry says its ID was not captured; the Rules remain authoritative for legal requirements.",
+  "submission_fields": [
+    {"id": 27536, "key": "submitter_type", "required": true},
+    {"id": 27538, "key": "organization", "required": false},
+    {"id": 27537, "key": "countries", "required": true},
+    {"id": 27551, "key": "new_or_existing_project", "required": true},
+    {"id": 27539, "key": "start_date", "required": true},
+    {"id": 27540, "key": "existing_project_update_explanation", "required": "conditional"},
+    {"id": 27541, "key": "track_selection", "required": true},
+    {"id": 27542, "key": "public_repository_url", "required": true},
+    {"id": 27543, "key": "alibaba_cloud_proof_code_url", "required": true},
+    {"id": 27544, "key": "architecture_diagram_upload", "required": true},
+    {"id": 27832, "key": "workbench_deployment_screenshot_upload", "required": true},
+    {"id": 27545, "key": "blog_or_social_post_url", "required": false},
+    {"id": 27546, "key": "ai_tools_used", "required": true},
+    {"id": 27547, "key": "learning_summary", "required": true},
+    {"id": 27548, "key": "eligibility_confirmation_1", "required": true},
+    {"id": 27549, "key": "eligibility_confirmation_2", "required": true},
+    {"id": 27550, "key": "eligibility_confirmation_3", "required": true},
+    {"id": 27898, "key": "testing_instructions", "required": true},
+    {"id": null, "key": "public_demo_video", "required": true, "id_status": "standard_field_id_not_captured"}
+  ],
+  "repository_projection_policy": {
+    "canonical_path": "submission/hackathon-contract.json",
+    "human_projection_path": "submission/HACKATHON_CONTRACT.md",
+    "evidence_manifest_path": "submission/evidence-manifest.json",
+    "preflight_path": "scripts/preflight.ps1",
+    "rule": "Official contract facts are maintained only in the canonical JSON. Derived documents must reference its SHA-256 and must not override it."
+  }
+}

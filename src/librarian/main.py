@@ -1,10 +1,20 @@
 """Librarian API — Track 1: MemoryAgent (Qwen Cloud hackathon)."""
-from time import perf_counter
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from fastapi.responses import HTMLResponse
+from collections import deque
+import secrets
+from threading import Lock
+from time import monotonic, perf_counter
+
+from fastapi import FastAPI, Header, HTTPException, Request
+from pydantic import BaseModel, Field
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from . import __version__
+from .config import (
+    get_deployed_sha,
+    get_memory_root,
+    get_qwen_health_token,
+    get_rate_limit_per_minute,
+)
 from .forget import run_lint
 from .ingest import ingest_source
 from .llm import Tier, get_router
@@ -13,8 +23,51 @@ from .query import answer_question
 from .store import MemoryStore
 
 app = FastAPI(title="Librarian", version=__version__)
-store = MemoryStore()
-ledger = RunLedger()
+memory_root = get_memory_root()
+store = MemoryStore(memory_root)
+ledger = RunLedger(memory_root / "runs.jsonl")
+
+
+class _FixedWindowRateLimiter:
+    """Small single-process abuse guard for the one-worker demo runtime."""
+
+    def __init__(self, limit: int, *, window_seconds: float = 60.0) -> None:
+        self.limit = limit
+        self.window_seconds = window_seconds
+        self._buckets: dict[str, deque[float]] = {}
+        self._lock = Lock()
+
+    def allow(self, key: str, *, now: float | None = None) -> bool:
+        timestamp = monotonic() if now is None else now
+        cutoff = timestamp - self.window_seconds
+        with self._lock:
+            bucket_key = key
+            if key not in self._buckets and len(self._buckets) >= 2048:
+                bucket_key = "<overflow>"
+            bucket = self._buckets.setdefault(bucket_key, deque())
+            while bucket and bucket[0] <= cutoff:
+                bucket.popleft()
+            if len(bucket) >= self.limit:
+                return False
+            bucket.append(timestamp)
+            return True
+
+
+rate_limiter = _FixedWindowRateLimiter(get_rate_limit_per_minute())
+
+
+@app.middleware("http")
+async def bounded_public_requests(request: Request, call_next):
+    if request.url.path in {"/health", "/health/qwen"}:
+        return await call_next(request)
+    client_key = request.client.host if request.client else "unknown"
+    if not rate_limiter.allow(client_key):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "request rate limit exceeded"},
+            headers={"Retry-After": "60"},
+        )
+    return await call_next(request)
 
 
 class IngestRequest(BaseModel):
@@ -24,7 +77,7 @@ class IngestRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
-    top_k: int = 3
+    top_k: int = Field(default=3, ge=1, le=10)
 
 
 class LintRequest(BaseModel):
@@ -33,7 +86,11 @@ class LintRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "version": __version__}
+    return {
+        "status": "ok",
+        "version": __version__,
+        "deployed_sha": get_deployed_sha(),
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -129,6 +186,7 @@ def ingest(payload: IngestRequest) -> dict:
                 total_tokens=result.total_tokens,
                 latency_ms=latency_ms,
                 success=True,
+                details=result.trace,
             )
         )
     except ValueError as e:
@@ -175,6 +233,9 @@ def ingest(payload: IngestRequest) -> dict:
         },
         "prompt_version": result.prompt_version,
         "route_tier": result.route_tier,
+        "claim_ids": result.claim_ids,
+        "transitions": result.transition_events,
+        "trace": result.trace,
     }
 
 
@@ -188,6 +249,8 @@ def stats() -> dict:
             "wiki_pages": len(store.list_wiki_pages()),
             "index_exists": store.index_path.exists(),
             "log_exists": store.log_path.exists(),
+            "decisions_exists": store.decisions_path.exists(),
+            "projection_consistent": store.projection_is_consistent(),
         },
     }
 
@@ -214,6 +277,7 @@ def query(payload: QueryRequest) -> dict:
                 total_tokens=result.total_tokens,
                 latency_ms=latency_ms,
                 success=True,
+                details={**result.trace, "abstained": int(result.abstained)},
             )
         )
     except ValueError as e:
@@ -253,8 +317,12 @@ def query(payload: QueryRequest) -> dict:
     return {
         "status": "ok",
         "answer": result.answer,
+        "facts": result.facts,
         "citations": [f"memory/wiki/{s}.md" for s in result.citations],
+        "evidence_claim_ids": result.evidence_claim_ids,
+        "evidence_source_ids": result.evidence_source_ids,
         "confidence": result.confidence,
+        "abstained": result.abstained,
         "route": result.route,
         "model": result.model,
         "tokens": {
@@ -263,6 +331,7 @@ def query(payload: QueryRequest) -> dict:
             "total": result.total_tokens,
         },
         "prompt_version": result.prompt_version,
+        "trace": result.trace,
     }
 
 
@@ -287,6 +356,11 @@ def lint(payload: LintRequest) -> dict:
                 total_tokens=result.total_tokens,
                 latency_ms=latency_ms,
                 success=True,
+                details={
+                    "findings": len(result.findings),
+                    "transitioned_claims": len(result.transitioned_claims),
+                    "repaired_projections": int(result.repaired_projections),
+                },
             )
         )
     except Exception as e:
@@ -313,6 +387,8 @@ def lint(payload: LintRequest) -> dict:
             "page": f.page,
             "message": f.message,
             "archived": f.archived,
+            "claim_id": f.claim_id,
+            "repaired": f.repaired,
         }
         for f in result.findings
     ]
@@ -320,6 +396,9 @@ def lint(payload: LintRequest) -> dict:
         "status": "ok",
         "findings": findings,
         "archived_pages": result.archived_pages,
+        "archived_claims": result.archived_claims,
+        "transitioned_claims": result.transitioned_claims,
+        "repaired_projections": result.repaired_projections,
         "tokens": {
             "prompt": result.prompt_tokens,
             "completion": result.completion_tokens,
@@ -329,16 +408,33 @@ def lint(payload: LintRequest) -> dict:
     }
 
 
-@app.get("/health/qwen")
-def health_qwen() -> dict:
+@app.get("/health/qwen", include_in_schema=False)
+def health_qwen(
+    x_librarian_health_token: str | None = Header(
+        default=None,
+        alias="X-Librarian-Health-Token",
+    ),
+) -> dict:
     """Round-trip check against Qwen Cloud (DashScope compatible mode)."""
+    expected_token = get_qwen_health_token()
+    if (
+        not expected_token
+        or not x_librarian_health_token
+        or not secrets.compare_digest(expected_token, x_librarian_health_token)
+    ):
+        raise HTTPException(status_code=404, detail="not found")
     started = perf_counter()
     try:
         r = get_router().chat(
             Tier.LIGHT,
             system="You are a health check. Reply with exactly: pong",
             user="ping",
+            temperature=0.0,
+            max_tokens=8,
         )
+        reply = r.text.strip()
+        if reply != "pong":
+            raise ValueError("Qwen health response was not exact pong")
         latency_ms = int((perf_counter() - started) * 1000)
         ledger.append(
             RunEvent(
@@ -373,6 +469,6 @@ def health_qwen() -> dict:
     return {
         "status": "ok",
         "model": r.model,
-        "reply": r.text.strip()[:40],
+        "reply": reply,
         "tokens": {"prompt": r.prompt_tokens, "completion": r.completion_tokens},
     }

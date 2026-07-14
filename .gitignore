@@ -7,3 +7,4 @@ __pycache__/
 graphify-out/
 QWEN-*.txt
 memory/
+proof/runs/

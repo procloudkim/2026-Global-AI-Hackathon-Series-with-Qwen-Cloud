@@ -6,25 +6,42 @@
 ## What is this?
 
 Librarian is a persistent-memory agent built on Qwen Cloud. Instead of RAG-style
-re-discovery on every query, it incrementally builds and maintains a structured,
-interlinked markdown wiki — updating entity pages, flagging contradictions,
-and **actively forgetting** stale information via a lint engine.
+re-discovery on every query, it maintains atomic, evidence-backed claims inside a
+Markdown wiki. Superseded claims remain auditable but are removed from answer
+context; unresolved conflicts stay disputed instead of being guessed away.
 
-Key capabilities (Track 1 requirements):
-1. **Efficient storage & retrieval** — compounding wiki + link graph, index-first search
-2. **Timely forgetting** — lint engine detects stale claims, contradictions, orphans; archives with rationale
-3. **Recall within limited context** — surgical context injection (top-K pages only), token metering included
+Core capabilities:
+1. **Persistent accumulation** — content-hashed immutable raw sources, canonical wiki claims, append-only decision receipts with crash-recovery outbox
+2. **Safe, timely forgetting** — evidence-validated claim transitions; no whole-page auto archive
+3. **Limited-context recall** — score `graph.json` metadata first, then load at most top-K wiki pages
+4. **Cited structured answers** — fact/claim/source receipts and fail-closed citation validation
 
 ## Status
 
-🚧 In development for the hackathon (deadline 2026-07-09 PT). See `aidlc-docs/` for the
-AI-DLC design documents (requirements → units of work → architecture → operations).
+The claim-lifecycle implementation, deterministic evaluation lanes, canonical
+hackathon contract, and exact-SHA release tooling are implemented locally. The
+public dev suite is development evidence only. The current candidate has not
+passed a fresh live-Qwen gate, has not been deployed to Alibaba Cloud, and has
+not been promoted by an independent private holdout. No winning,
+production-ready, or submission-ready claim is made. Public-development and
+synthetic receipts are always `promoted: false`; only an independently signed
+private-holdout attestation can promote a frozen candidate.
+
+Current proof and contract status:
+
+- `submission/hackathon-contract.json` is the canonical official-contract SOT.
+- `submission/evidence-manifest.json` keeps local, live, deployed, holdout, and
+  submission evidence levels separate.
+- `submission/account-credit-audit.json` records masked account observations;
+  Compute eligibility remains unknown and unapproved spend is capped at USD 0.
+- `scripts/preflight.ps1 -Mode ci` may pass while deploy and submit modes still
+  fail closed on missing external evidence.
 
 ## Local run
 
 ```bash
-uv sync
-uv run uvicorn librarian.main:app --reload
+uv sync --frozen
+uv run --frozen uvicorn --app-dir src librarian.main:app --reload
 ```
 
 - API docs: `http://127.0.0.1:8000/docs`
@@ -33,8 +50,13 @@ uv run uvicorn librarian.main:app --reload
 ## Docker run (portable)
 
 ```bash
+cp .env.example .env
 docker compose up --build -d
 ```
+
+On PowerShell, use `Copy-Item .env.example .env` for the first command. Keep
+`.env` local and add a real `DASHSCOPE_API_KEY` only for an explicitly approved
+live-Qwen run; `/health` itself does not call Qwen.
 
 - App: `http://127.0.0.1:8080/`
 - API docs: `http://127.0.0.1:8080/docs`
@@ -51,22 +73,39 @@ docker compose down
 This project is developed following [AI-DLC](https://github.com/awslabs/aidlc-workflows)
 (AI-Driven Development Life Cycle), with design docs in `aidlc-docs/`.
 
-Conceptual foundations: [karpathy/llm-wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f),
-[karpathy/autoresearch](https://github.com/karpathy/autoresearch),
-[safishamsi/graphify](https://github.com/safishamsi/graphify),
-[colbymchenry/codegraph](https://github.com/colbymchenry/codegraph).
+Design rationale and research references live in
+[`wiki/concepts/foundations.md`](wiki/concepts/foundations.md).
 
 ## License
 
 MIT
 
-## Alibaba Cloud deployment proof (Track submission)
+## Alibaba Cloud release tooling (deployment proof pending)
 
-Deployment scripts are included for Alibaba Cloud ECS:
+Deployment tooling supports an approved Ubuntu 22.04/24.04 Alibaba ECS or
+Simple Application Server host. It does not activate a trial, create a
+resource, attach a payment method, or spend credit.
 
-- `deploy/setup.sh` - one-time ECS setup + systemd unit
-- `deploy/deploy.sh` - pull latest code, run tests, restart service, health check
-- `Dockerfile`, `docker-compose.yml` - portable container deployment path
+- `deploy/setup.sh` installs the non-login service account, persistent paths,
+  checksum-pinned uv artifact, systemd unit, and Caddy configuration. It
+  intentionally does not deploy or start the application.
+- `deploy/deploy.sh` accepts a reviewed Git archive plus candidate and receipt
+  digests, installs `/opt/librarian/releases/<sha>`, atomically switches
+  `/opt/librarian/current`, and never replaces
+  `/var/lib/librarian/memory`.
+- `deploy/rollback.sh` restores a previously verified immutable release and
+  stops the service if the persistent-memory digest changes.
+- `deploy/verify-restart-persistence.sh` runs the approval-gated Track 1
+  100→1000 vertical slice in a unique namespace and writes an append-only proof
+  receipt.
+- `.github/workflows/ci.yml` uses no Qwen key. The manual production workflow
+  performs the bounded no-gold live gate before host deployment.
+- `Dockerfile` and `docker-compose.yml` remain a loopback-bound portable local
+  runtime path.
+
+The public `/health` route is a no-Qwen process/SHA check. `/health/qwen` is a
+token-authenticated, exact-`pong`, bounded release check and is denied by the
+public Caddy proxy. It must not be used as a load-balancer probe.
 
 Qwen Cloud API integration code path:
 
@@ -78,16 +117,23 @@ Librarian exposes MCP tools for agent integration:
 
 - `memory_ingest(source_id, text)`
 - `memory_query(question, top_k=5)`
-- `memory_lint(apply_archive=true)`
+- `memory_lint(apply_archive=true)` (`apply_archive` is a legacy name for safe repairs; pages are never auto-archived)
 - `memory_stats()`
 
 Run MCP server (stdio):
 
 ```bash
-uv run python -m librarian.mcp_server
+PYTHONPATH=src uv run --frozen python -m librarian.mcp_server
 ```
 
-## U8 A/B benchmark
+PowerShell equivalent:
+
+```powershell
+$env:PYTHONPATH = "src"
+uv run --frozen python -m librarian.mcp_server
+```
+
+## Legacy token smoke benchmark
 
 Run token minimization experiments (L-E1~L-E3):
 
@@ -95,12 +141,38 @@ Run token minimization experiments (L-E1~L-E3):
 uv run python bench/run_ab.py
 ```
 
-Optional estimated cost env vars:
+This command checks formatting/token plumbing only. It is not answer-correctness or
+winning evidence.
 
-- `BENCH_INPUT_PRICE_PER_1M`
-- `BENCH_OUTPUT_PRICE_PER_1M`
+## Independent memory-policy evaluation
+
+The evaluator never passes gold labels to the runner and never uses Qwen as
+judge. Public development comparison, production conformance, and independent
+private promotion are separate lanes. Production conformance replays the
+transition ledger, verifies append-only prefixes and source-bound evidence, and
+requires the replayed state to equal canonical memory.
+
+```powershell
+uv run --frozen pytest tests eval/tests -q
+```
+
+See [`eval/README.md`](eval/README.md) for reproducible public runs, the
+secret-seeded 24-scenario holdout, and promotion boundaries.
 
 ## Submission helpers
 
+- Canonical contract: `submission/hackathon-contract.json`
+- Human contract projection: `submission/HACKATHON_CONTRACT.md`
+- Evidence manifest: `submission/evidence-manifest.json`
+- Masked account/credit audit: `submission/account-credit-audit.json`
 - Devpost template: `submission/DEVPOST_TEMPLATE.md`
-- Preflight script: `scripts/preflight.ps1`
+- Tiered preflight: `scripts/preflight.ps1`
+
+Run the local structural lane with:
+
+```powershell
+pwsh -File scripts/preflight.ps1 -Mode ci -RunTests
+```
+
+Deploy and submit modes require a clean frozen candidate and their respective
+external receipts. A pass at one level never substitutes for another.

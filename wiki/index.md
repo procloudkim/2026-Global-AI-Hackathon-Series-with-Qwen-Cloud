@@ -1,39 +1,20 @@
-# Index — Qwen Cloud 해커톤 지식 베이스
+# Index — Librarian knowledge base
 
-> llm-wiki 방식으로 유지되는 지식 베이스입니다. LLM이 작성/유지하며, 사람은 소싱과 질문을 담당합니다.
-> 마지막 갱신: 2026-07-03
+The wiki contains design rationale and research. Current hackathon contract facts are canonical only in [`submission/hackathon-contract.json`](../submission/hackathon-contract.json).
 
-## ⚡ 최우선 사실
+## Current release-control surfaces
 
-- **마감: 2026-07-10 06:00 KST (D-7, 2026-07-03 기준)**
-- 제출: 공개 OSS 리포 + 알리바바 클라우드 배포 증빙 + 아키텍처 다이어그램 + 3분 영상 + 트랙 지정
+| Surface | Role |
+|---|---|
+| [`submission/HACKATHON_CONTRACT.md`](../submission/HACKATHON_CONTRACT.md) | Human contract projection bound to canonical JSON |
+| [`submission/evidence-manifest.json`](../submission/evidence-manifest.json) | Candidate and evidence status |
+| [`submission/account-credit-audit.json`](../submission/account-credit-audit.json) | Masked account/credit facts and zero-spend boundary |
+| [`scripts/preflight.ps1`](../scripts/preflight.ps1) | CI, deployment, and submission fail-closed validation |
 
-## 페이지 목록
+## Design research
 
-### 해커톤 (hackathon/)
-
-| 페이지                                                           | 요약                                   |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| [overview.md](hackathon/overview.md)                             | 개요·일정·상금·참가자격·규정 MECE 정리 |
-| [tracks.md](hackathon/tracks.md)                                 | 5개 트랙 요구사항·평가 포인트 상세     |
-| [judging-and-submission.md](hackathon/judging-and-submission.md) | 심사기준(가중치)·제출 요건 체크리스트  |
-
-### 기반 개념 (concepts/)
-
-| 페이지                                        | 요약                                                                                                |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [foundations.md](concepts/foundations.md)     | llm-wiki, autoresearch, graphify, codegraph, AI-DLC, 하네스 엔지니어링 — 5+1 기반 개념 및 상호 관계 |
-| [token-harness.md](concepts/token-harness.md) | Deep-research 토큰 하네스 보고서 지식화 — RunLedger·정적 prefix·출력계약·A/B 실험 설계              |
-
-### 전략 (strategy/)
-
-| 페이지                                                      | 요약                                                 |
-| ----------------------------------------------------------- | ---------------------------------------------------- |
-| [track-recommendation.md](strategy/track-recommendation.md) | 트랙 적합도 분석 및 추천 (결론: Track 1 MemoryAgent) |
-
-## log
-
-- `[2026-07-03] ingest | Devpost 메인/rules/resources 페이지, QWEN-해커톤-요건.txt, 기반 개념 5개 리포 수집 → 초기 위키 구축`
-- `[2026-07-03] query | 출전 트랙 추천 → strategy/track-recommendation.md 작성`
-- `[2026-07-03] decision | Track 1 MemoryAgent 확정 — 하네스를 프로덕트로 승격, 목표=수상`
-- `[2026-07-03] ingest | Deep-research-token.md → concepts/token-harness.md 지식화, U2/U4/U8 설계 반영`
+| Page | Scope |
+|---|---|
+| [foundations.md](concepts/foundations.md) | LLM Wiki, autoresearch, graph, and harness concepts |
+| [token-harness.md](concepts/token-harness.md) | Token and limited-context measurement contract |
+| [track-recommendation.md](strategy/track-recommendation.md) | Why Track 1 is the narrowest technical fit |

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from time import perf_counter
 
+from .config import get_memory_root
 from .forget import run_lint
 from .ingest import ingest_source
 from .llm import get_router
@@ -14,8 +15,9 @@ from .meter import RunEvent, RunLedger, now_iso
 from .query import answer_question
 from .store import MemoryStore
 
-store = MemoryStore()
-ledger = RunLedger()
+memory_root = get_memory_root()
+store = MemoryStore(memory_root)
+ledger = RunLedger(memory_root / "runs.jsonl")
 
 
 def memory_ingest_impl(source_id: str, text: str) -> dict:
@@ -38,6 +40,7 @@ def memory_ingest_impl(source_id: str, text: str) -> dict:
             total_tokens=result.total_tokens,
             latency_ms=latency_ms,
             success=True,
+            details=result.trace,
         )
     )
     return {
@@ -47,10 +50,15 @@ def memory_ingest_impl(source_id: str, text: str) -> dict:
         "page_title": result.page.title,
         "prompt_version": result.prompt_version,
         "route_tier": result.route_tier,
+        "claim_ids": result.claim_ids,
+        "transitions": result.transition_events,
+        "trace": result.trace,
     }
 
 
 def memory_query_impl(question: str, top_k: int = 5) -> dict:
+    if not 1 <= top_k <= 10:
+        raise ValueError("top_k must be between 1 and 10")
     started = perf_counter()
     result = answer_question(
         question=question,
@@ -70,14 +78,20 @@ def memory_query_impl(question: str, top_k: int = 5) -> dict:
             total_tokens=result.total_tokens,
             latency_ms=latency_ms,
             success=True,
+            details={**result.trace, "abstained": int(result.abstained)},
         )
     )
     return {
         "status": "ok",
         "answer": result.answer,
+        "facts": result.facts,
         "citations": [f"memory/wiki/{slug}.md" for slug in result.citations],
+        "evidence_claim_ids": result.evidence_claim_ids,
+        "evidence_source_ids": result.evidence_source_ids,
         "confidence": result.confidence,
+        "abstained": result.abstained,
         "route": result.route,
+        "trace": result.trace,
         "tokens": {
             "prompt": result.prompt_tokens,
             "completion": result.completion_tokens,
@@ -101,6 +115,11 @@ def memory_lint_impl(apply_archive: bool = True) -> dict:
             total_tokens=result.total_tokens,
             latency_ms=latency_ms,
             success=True,
+            details={
+                "findings": len(result.findings),
+                "transitioned_claims": len(result.transitioned_claims),
+                "repaired_projections": int(result.repaired_projections),
+            },
         )
     )
     return {
@@ -111,10 +130,15 @@ def memory_lint_impl(apply_archive: bool = True) -> dict:
                 "page": f.page,
                 "message": f.message,
                 "archived": f.archived,
+                "claim_id": f.claim_id,
+                "repaired": f.repaired,
             }
             for f in result.findings
         ],
         "archived_pages": result.archived_pages,
+        "archived_claims": result.archived_claims,
+        "transitioned_claims": result.transitioned_claims,
+        "repaired_projections": result.repaired_projections,
     }
 
 

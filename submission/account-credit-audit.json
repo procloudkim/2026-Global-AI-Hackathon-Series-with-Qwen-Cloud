@@ -1,0 +1,149 @@
+{
+  "schema_version": "librarian-account-credit-audit/v1",
+  "fetched_at": {
+    "start": "2026-07-14T11:45:00+09:00",
+    "end": "2026-07-14T12:00:00+09:00"
+  },
+  "account_identifiers": "not_captured",
+  "activation_performed": false,
+  "resource_creation_performed": false,
+  "payment_method_changed": false,
+  "account_state_observed": {
+    "qwen_current_month_spend_usd": 0.0,
+    "payment_information": "incomplete",
+    "budget_alerts": "not_verified_console_did_not_render",
+    "prior_orders_or_payg_usage": "not_verified_console_did_not_render"
+  },
+  "max_unapproved_spend_usd": 0,
+  "benefits": [
+    {
+      "classification": "A_QWEN_CLOUD_INFERENCE_FREE_QUOTA",
+      "display_name": "Model Studio free quota (account identifier omitted)",
+      "issuer": "Alibaba Cloud Model Studio",
+      "currency": "tokens",
+      "total_and_remaining": [
+        {
+          "product": "qwen-flash",
+          "total": 1000000,
+          "remaining_percent_observed": 92.28,
+          "expires_on": "2026-10-02"
+        },
+        {
+          "product": "qwen-plus",
+          "total": "not_captured",
+          "remaining_percent_observed": 97.18,
+          "expires_on": "2026-08-03"
+        },
+        {
+          "product": "qwen-plus-2025-07-28",
+          "total": 1000000,
+          "remaining_percent_observed": 100.0,
+          "expires_on": "2026-10-02"
+        }
+      ],
+      "free_quota_only_enabled": true,
+      "compute_applicability": {
+        "ecs": false,
+        "simple_application_server": false,
+        "function_compute": false
+      },
+      "overage_risk": "Free quota only was observed enabled; reverify immediately before every approved live gate.",
+      "evidence": {
+        "console_page": "Model Studio > Model Usage > Free Quota (account path omitted)",
+        "official_url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+      }
+    },
+    {
+      "classification": "B_ALIBABA_CLOUD_GENERAL_COUPON_OR_CREDIT_PROVISIONAL",
+      "display_name": "Cash Voucher - General Use (Exclusions Apply; identifier omitted)",
+      "issuer": "Alibaba Cloud",
+      "currency": "USD",
+      "total": 40.0,
+      "remaining": 40.0,
+      "starts_on": "not_captured",
+      "expires_on": "2026-10-01",
+      "applicable_products": "not_verified",
+      "compute_applicability": {
+        "ecs": "unknown",
+        "simple_application_server": "unknown",
+        "function_compute": "unknown"
+      },
+      "disk_bandwidth_public_ip_included": "unknown",
+      "regions": "unknown",
+      "billing_methods": "unknown",
+      "minimum_spend": "unknown",
+      "excluded_skus": "unknown",
+      "automatic_renewal_or_overage": "unknown",
+      "stackable_with_free_trial": "unknown",
+      "evidence": {
+        "console_page": "Billing Management > Coupons > Cash Voucher (account path and voucher identifier omitted)",
+        "official_url": null,
+        "official_url_status": "not_captured_console_is_account_specific_source"
+      }
+    },
+    {
+      "classification": "C_ECS_PRODUCT_TRIAL_OFFER_NOT_ACTIVATED",
+      "display_name": "ECS free trial offer",
+      "issuer": "Alibaba Cloud",
+      "currency": "USD credit",
+      "total": 90.0,
+      "remaining": "not_applicable_not_activated",
+      "duration": "3 months",
+      "hourly_credit_cap_usd": 0.25,
+      "eligible_regions_observed": 8,
+      "included_products_observed": [
+        "ECS compute",
+        "system disk",
+        "up to 200 GB/month outbound traffic outside mainland China"
+      ],
+      "minimum_singapore_configuration_observed": {
+        "vcpu": 2,
+        "memory_gib": 4,
+        "instance_family": "economy e",
+        "system_disk": "100 GiB ESSD Entry",
+        "os": "Ubuntu 22.04",
+        "displayed_hourly_price_usd": 0.046
+      },
+      "eligibility": "unknown_account_information_completion_required",
+      "past_purchase_payg_or_trial_history": "not_verified",
+      "kyc_phone_payment_requirements": "account_information_completion_required_other_requirements_not_verified",
+      "judging_period_coverage": "unknown_until_activation_date_and_terms_are_verified",
+      "post_trial_instance_and_disk_behavior": "unknown",
+      "automatic_overage": "unknown",
+      "evidence": {
+        "console_page": "Alibaba Cloud Free Trial > Elastic Compute Service (account path omitted)",
+        "official_url": "https://www.alibabacloud.com/free"
+      }
+    }
+  ],
+  "compute_eligibility": {
+    "status": "UNKNOWN",
+    "ecs_new_customer": "unknown",
+    "simple_application_server_new_customer": "unknown",
+    "function_compute_trial": "unknown",
+    "reason": "Account-information completion and prior order/PAYG/trial history were not verified; no entitlement was consumed."
+  },
+  "infrastructure_decision": {
+    "recommended_runtime": "Alibaba ECS trial, conditional on account eligibility, non-ephemeral disk, judging-period coverage, and zero-overage controls being verified before activation",
+    "fallback_runtime": "Alibaba Simple Application Server trial using the same Ubuntu/systemd layout, conditional on equivalent console verification and Workbench evidence suitability",
+    "coupon_covered_compute": "not_selected_until_exact_product_sku_region_disk_bandwidth_and_billing_scope_are_verified",
+    "function_compute": "rejected_for_this_release_file_persistence_and_zero_cost_storage_contract_not_proven",
+    "minimal_paid_compute": "not_a_current_fallback_requires_separate_cost_ceiling_and_user_approval"
+  },
+  "cost_contract": {
+    "free_trial_activation_requires_separate_approval": true,
+    "coupon_application_requires_separate_approval": true,
+    "resource_creation_requires_separate_approval": true,
+    "payment_method_link_requires_separate_approval": true,
+    "paid_fallback_requires_separate_approval": true,
+    "budget_and_spending_alerts_required_before_resource_creation": true,
+    "automatic_renewal_must_be_disabled": true,
+    "teardown_before_judging_end": false,
+    "required_reverification": [
+      "exact coupon product/SKU/region/billing-method scope",
+      "new-customer trial eligibility and prior usage history",
+      "post-trial billing and disk retention behavior",
+      "judging-period end date against benefit expiry"
+    ]
+  }
+}

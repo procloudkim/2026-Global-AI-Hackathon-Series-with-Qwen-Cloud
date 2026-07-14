@@ -1,4 +1,8 @@
-"""Run A/B token-cost experiments for Librarian (U8)."""
+"""Run the legacy U8 token/format smoke benchmark.
+
+Its success predicate does not score answer correctness or stale leakage. Use
+``eval/`` for promotion evidence; never cite this script as a winning receipt.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
