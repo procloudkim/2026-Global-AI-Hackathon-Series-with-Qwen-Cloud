@@ -102,6 +102,7 @@ readonly STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 PREVIOUS_SHA=""
 PREVIOUS_PATH=""
 PREVIOUS_HEALTHY=0
+PREVIOUS_FINALIZED=0
 MEMORY_BEFORE=""
 MEMORY_AFTER=""
 MEMORY_PRE_CANDIDATE=""
@@ -120,6 +121,67 @@ memory_digest() {
     | xargs -0 -r sha256sum \
     | sha256sum \
     | awk '{print $1}'
+}
+
+release_is_finalized() {
+  local target_sha="$1"
+  TARGET_SHA_VALUE="${target_sha}" \
+  DEPLOYMENT_ROOT_VALUE="${DEPLOYMENT_ROOT}" \
+  python3 - <<'PY'
+import hashlib
+import json
+import os
+from pathlib import Path
+
+root = Path(os.environ["DEPLOYMENT_ROOT_VALUE"]).resolve()
+target = os.environ["TARGET_SHA_VALUE"]
+
+def load(path):
+    value = json.loads(path.read_text(encoding="utf-8"))
+    return value if isinstance(value, dict) else {}
+
+def valid_reference(reference, *, schema, status):
+    if not isinstance(reference, dict) or reference.get("status") != status:
+        return False
+    path = Path(str(reference.get("path", "")))
+    try:
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(root)
+    except (OSError, ValueError):
+        return False
+    if path.is_symlink() or not path.is_file():
+        return False
+    if hashlib.sha256(path.read_bytes()).hexdigest() != reference.get("sha256"):
+        return False
+    payload = load(path)
+    return (
+        payload.get("schema_version") == schema
+        and payload.get("status") == status
+        and payload.get("candidate_sha") == target
+    )
+
+for receipt_path in sorted(root.glob(f"*-{target[:12]}.finalized.json")):
+    if receipt_path.is_symlink() or not receipt_path.is_file():
+        continue
+    receipt = load(receipt_path)
+    if (
+        receipt.get("schema_version") == "librarian-release-finalization/v1"
+        and receipt.get("status") == "RELEASE_VERIFIED"
+        and receipt.get("candidate_sha") == target
+        and valid_reference(
+            receipt.get("deployment_manifest"),
+            schema="librarian-release-event/v1",
+            status="DEPLOYED",
+        )
+        and valid_reference(
+            receipt.get("restart_persistence_proof"),
+            schema="librarian-restart-persistence-proof/v1",
+            status="PASS",
+        )
+    ):
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
 }
 
 memory_file_count() {
@@ -292,6 +354,7 @@ on_error() {
   if [[ ("${SWITCHED}" -eq 1 || "${SERVICE_STOPPED}" -eq 1) \
         && "${memory_safe}" -eq 1 \
         && "${PREVIOUS_HEALTHY}" -eq 1 \
+        && "${PREVIOUS_FINALIZED}" -eq 1 \
         && -n "${PREVIOUS_PATH}" && -d "${PREVIOUS_PATH}" ]]; then
     if [[ "${SWITCHED}" -eq 1 ]]; then
       atomic_link "${PREVIOUS_PATH}"
@@ -390,6 +453,9 @@ if [[ -L "${CURRENT_LINK}" ]]; then
   PREVIOUS_PATH="$(readlink -f "${CURRENT_LINK}")"
   if [[ "${PREVIOUS_PATH}" =~ ^${RELEASE_ROOT}/([0-9a-f]{40})$ ]]; then
     PREVIOUS_SHA="${BASH_REMATCH[1]}"
+    if release_is_finalized "${PREVIOUS_SHA}"; then
+      PREVIOUS_FINALIZED=1
+    fi
     if health_matches_sha "${PREVIOUS_SHA}"; then
       PREVIOUS_HEALTHY=1
     fi

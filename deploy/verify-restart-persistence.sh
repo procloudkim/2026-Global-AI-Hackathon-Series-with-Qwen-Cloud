@@ -234,8 +234,7 @@ elif kind == "source-b":
         "text": (
             f"Release proof namespace {namespace}. This record explicitly replaces "
             f"{os.environ['SOURCE_A_VALUE']}. In release-proof, {namespace}'s "
-            "production-quota is 1000 units per minute. It does not change "
-            f"{namespace}'s retention-marker."
+            "production-quota is 1000 units per minute."
         ),
     }
 elif kind == "quota-query":

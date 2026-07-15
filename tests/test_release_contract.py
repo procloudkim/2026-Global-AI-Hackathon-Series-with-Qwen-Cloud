@@ -116,6 +116,13 @@ def test_deploy_and_rollback_preserve_memory_and_require_gate_receipt() -> None:
     assert 'rm -f -- "${ARCHIVE_TAR}"' in deploy
     assert "gzip -dc -- \"${ARCHIVE}\" | git get-tar-commit-id" not in deploy
     assert "atomic_link" in deploy and "atomic_link" in rollback
+    assert "release_is_finalized" in deploy and "release_is_finalized" in rollback
+    assert "librarian-release-finalization/v1" in deploy
+    assert "librarian-release-finalization/v1" in rollback
+    assert "librarian-restart-persistence-proof/v1" in deploy
+    assert "librarian-restart-persistence-proof/v1" in rollback
+    assert 'receipt.get("status") == "RELEASE_VERIFIED"' in deploy
+    assert 'receipt.get("status") == "RELEASE_VERIFIED"' in rollback
     assert 'rm -rf -- "${MEMORY_ROOT}"' not in combined
     assert "MEMORY_BEFORE" in combined and "MEMORY_AFTER" in combined
 
@@ -151,8 +158,10 @@ def test_failed_candidate_is_not_left_as_current_or_used_as_rollback() -> None:
     deploy = read("deploy/deploy.sh")
 
     assert "PREVIOUS_HEALTHY=0" in deploy
+    assert "PREVIOUS_FINALIZED=0" in deploy
     assert 'if health_matches_sha "${PREVIOUS_SHA}"; then' in deploy
     assert '&& "${PREVIOUS_HEALTHY}" -eq 1' in deploy
+    assert '&& "${PREVIOUS_FINALIZED}" -eq 1' in deploy
     assert 'unlink_current_if_target "${RELEASE_PATH}"' in deploy
     assert 'RELEASE_CREATED=1' in deploy
     assert 'rm -rf -- "${RELEASE_PATH}"' in deploy
@@ -192,6 +201,7 @@ def test_restart_proof_uses_a_stable_cross_page_claim_key() -> None:
     assert 'marker_key = f"release-proof::{namespace}::retention-marker"' in proof
     assert 'quantity(c["value"]) == "100"' in proof
     assert 'quantity(c["value"]) == "1000"' in proof
+    assert "It does not change" not in proof
 
 
 def test_runtime_is_non_root_and_proxy_hides_paid_health() -> None:
