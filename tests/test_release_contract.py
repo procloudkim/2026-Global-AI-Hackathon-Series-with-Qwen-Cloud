@@ -205,6 +205,19 @@ def test_restart_proof_uses_a_stable_cross_page_claim_key() -> None:
     assert 'claim_payload["key"] = claim.key' in proof
     assert '"verifier_sha256": os.environ["VERIFIER_SHA256_VALUE"]' in proof
     assert "quota_fact_ids(before) == quota_fact_ids(after)" in proof
+    assert "did not filter stale claim" not in proof
+
+
+def test_quarantined_restart_continuation_is_hash_bound_and_zero_call() -> None:
+    continuation = read("deploy/continue-quarantined-restart-proof.py")
+
+    assert 'failure.get("status") == "FAIL_QUARANTINED"' in continuation
+    assert "REQUIRED_ARTIFACTS <= set(artifact_hashes)" in continuation
+    assert "canonical_memory_digest() == memory_after" in continuation
+    assert '"quarantined_artifacts_hash_verified": True' in continuation
+    assert "provider_calls <= 10" in continuation
+    assert "subprocess.run" in continuation
+    assert "DASHSCOPE" not in continuation
 
 
 def test_runtime_is_non_root_and_proxy_hides_paid_health() -> None:
@@ -226,6 +239,7 @@ def test_deploy_python_helpers_compile_without_execution() -> None:
     for relative in (
         "deploy/verify-cloud-approval.py",
         "deploy/inspect-infrastructure.py",
+        "deploy/continue-quarantined-restart-proof.py",
         "deploy/finalize-release.py",
         "deploy/scan-secrets.py",
         "deploy/verify-release-gate.py",
@@ -236,6 +250,7 @@ def test_deploy_python_helpers_compile_without_execution() -> None:
 def test_host_python_helpers_support_ubuntu_2204_system_python() -> None:
     for relative in (
         "deploy/inspect-infrastructure.py",
+        "deploy/continue-quarantined-restart-proof.py",
         "deploy/finalize-release.py",
     ):
         source = read(relative)

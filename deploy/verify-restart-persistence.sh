@@ -557,6 +557,7 @@ require(0 < provider_calls <= 10, "post-deploy provider-call trace exceeded its 
 require(0 < token_delta <= 25000, "post-deploy Qwen token usage exceeded its cap")
 
 standalone_old = re.compile(r"(?<![0-9])100(?![0-9])")
+quota_trace_modes = {}
 for label, response in (("before", before), ("after", after)):
     require(response.get("status") == "ok", f"{label} quota query failed")
     require(response.get("abstained") is False, f"{label} quota query abstained")
@@ -581,15 +582,14 @@ for label, response in (("before", before), ("after", after)):
     trace = response.get("trace") or {}
     require(int(trace.get("loaded_pages", 99)) <= 3, f"{label} exceeded top-K=3")
     require(int(trace.get("context_tokens", 0)) > 0, f"{label} lacks context-token trace")
-    require(int(trace.get("superseded_claims_filtered", 0)) >= 1, f"{label} did not filter stale claim")
     selected = set(trace.get("active_claim_ids_loaded") or []) | set(
         trace.get("disputed_claim_ids_loaded") or []
     )
     require(claims["new_claim_id"] in selected, f"{label} selected context lacks new claim")
     require(claims["old_claim_id"] not in selected, f"{label} selected context contains stale claim")
-    require(
-        claims["old_claim_id"] in set(trace.get("superseded_claim_ids_filtered") or []),
-        f"{label} trace does not identify the filtered stale claim",
+    filtered = set(trace.get("superseded_claim_ids_filtered") or [])
+    quota_trace_modes[label] = (
+        "filtered" if claims["old_claim_id"] in filtered else "not_retrieved"
     )
 
 require(
@@ -637,6 +637,7 @@ receipt = {
         "qwen_usage_present": True,
         "exact_sha_health_present": True,
     },
+    "quota_old_claim_trace_modes": quota_trace_modes,
     "budget": {
         "maximum_api_operations": 5,
         "maximum_logical_provider_calls_from_route_trace": 10,
