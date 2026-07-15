@@ -20,6 +20,17 @@ variable "instance_id" {
   }
 }
 
+variable "approved_instance_sha256" {
+  description = "SHA-256 of the approved instance_id from the fresh DescribeInstances binding receipt. Never persist the source ID in the repository."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[a-f0-9]{64}$", var.approved_instance_sha256))
+    error_message = "approved_instance_sha256 must be one lowercase SHA-256 digest."
+  }
+}
+
 provider "alicloud" {
   region = var.region
 }
@@ -81,6 +92,13 @@ resource "alicloud_ecs_command" "diagnose" {
   working_dir      = "/tmp"
   timeout          = 30
   enable_parameter = false
+
+  lifecycle {
+    precondition {
+      condition     = sha256(var.instance_id) == var.approved_instance_sha256
+      error_message = "The requested instance does not match the fresh approved target binding."
+    }
+  }
 }
 
 resource "alicloud_ecs_invocation" "diagnose" {

@@ -1,5 +1,5 @@
 {
-  "schema_version": "librarian-alibaba-mcp-service/v1",
+  "schema_version": "librarian-alibaba-mcp-service/v2",
   "service_name": "librarian-ops",
   "edition": "custom",
   "authentication": {
@@ -7,12 +7,60 @@
     "provider": "alibaba-cloud-official",
     "static_access_key_allowed": false
   },
-  "account_scope": "current_account_only",
+  "account_scope": "deployment_root_account_only",
+  "account_binding_gate": {
+    "required": true,
+    "official_oauth_identity_rule": "authorizing_user_root_must_match_mcp_server_root",
+    "discovery_tool": "Ecs-20140526-DescribeInstances",
+    "region": "ap-southeast-1",
+    "max_receipt_age_seconds": 300,
+    "required_conditions": [
+      "http_status_200",
+      "x_mcp_region_id_equals_region_id",
+      "caller_identity_type_is_known",
+      "caller_account_sha256_matches_endpoint_owner",
+      "exactly_one_instance",
+      "instance_status_running",
+      "sha256_instance_id_matches_approved_target",
+      "cloud_assistant_connected"
+    ],
+    "terraform_inputs": [
+      "region",
+      "instance_id",
+      "approved_instance_sha256"
+    ],
+    "on_zero_multiple_or_mismatch": "STOP_BEFORE_TERRAFORM",
+    "multi_account_enabled": false,
+    "multi_account_requires_ram_identity_and_separate_approval": true
+  },
+  "mcp_region_routing": {
+    "required": true,
+    "api_argument": "RegionId",
+    "routing_argument": "x_mcp_region_id",
+    "value": "ap-southeast-1",
+    "must_match": true,
+    "on_missing_or_mismatch": "STOP_BEFORE_TERRAFORM"
+  },
+  "cost_gate": {
+    "required": true,
+    "mode": "FREE_TIER_ONLY",
+    "max_unapproved_spend_usd": 0,
+    "paid_fallback_allowed": false,
+    "required_conditions": [
+      "active_trial_or_credit_scope_verified_in_console",
+      "remaining_eligible_balance_or_quota_positive",
+      "compute_disk_bandwidth_and_public_ip_coverage_verified",
+      "pay_by_traffic_overage_prevented_or_explicitly_approved",
+      "auto_release_or_teardown_deadline_recorded"
+    ],
+    "on_unverified_or_overage_risk": "STOP_BEFORE_TERRAFORM"
+  },
   "network": {
     "client": "local_interactive_codex",
     "private_link_allowed": false
   },
   "api_tools": [
+    "Sts-20150401-GetCallerIdentity",
     "Ecs-20140526-DescribeCloudAssistantStatus",
     "Ecs-20140526-DescribeInstances",
     "Ecs-20140526-DescribeInvocationResults"
