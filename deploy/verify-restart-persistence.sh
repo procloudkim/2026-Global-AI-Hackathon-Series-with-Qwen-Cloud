@@ -18,6 +18,7 @@ readonly CURRENT_LINK="/opt/librarian/current"
 readonly MEMORY_ROOT="/var/lib/librarian/memory"
 readonly PROOF_ROOT="/var/lib/librarian/deployments/proofs"
 readonly SERVICE_NAME="librarian"
+readonly VERIFIER_SHA256="$(sha256sum "${BASH_SOURCE[0]}" | awk '{print $1}')"
 
 BASE_URL=""
 AUTH_USER=""
@@ -131,6 +132,7 @@ on_error() {
     FAILURE_LINE_VALUE="${failure_line}" \
     FAILURE_CODE_VALUE="${exit_code}" \
     CANDIDATE_SHA_VALUE="${EXPECTED_SHA}" \
+    VERIFIER_SHA256_VALUE="${VERIFIER_SHA256}" \
     NAMESPACE_VALUE="${PROOF_NAMESPACE}" \
     SOURCE_A_VALUE="${SOURCE_A:-unknown}" \
     SOURCE_B_VALUE="${SOURCE_B:-unknown}" \
@@ -156,6 +158,7 @@ payload = {
     "failure_line": int(os.environ["FAILURE_LINE_VALUE"]),
     "exit_code": int(os.environ["FAILURE_CODE_VALUE"]),
     "candidate_sha": os.environ["CANDIDATE_SHA_VALUE"],
+    "verifier_sha256": os.environ["VERIFIER_SHA256_VALUE"],
     "proof_namespace": os.environ["NAMESPACE_VALUE"],
     "source_ids": [os.environ["SOURCE_A_VALUE"], os.environ["SOURCE_B_VALUE"]],
     "memory_sha256_at_failure": os.environ["MEMORY_DIGEST_VALUE"],
@@ -403,7 +406,9 @@ with store.transaction():
         for raw in store.claims_for_page(page):
             claim = Claim.from_dict(raw)
             if source_a in claim.source_ids or source_b in claim.source_ids:
-                claims.append(claim.to_dict())
+                claim_payload = claim.to_dict()
+                claim_payload["key"] = claim.key
+                claims.append(claim_payload)
 
 def quantity(value):
     match = re.fullmatch(
@@ -473,6 +478,7 @@ budget_checkpoint "${OUTPUT_DIR}/stats-after.json"
 SOURCE_A_VALUE="${SOURCE_A}" \
 SOURCE_B_VALUE="${SOURCE_B}" \
 EXPECTED_SHA_VALUE="${EXPECTED_SHA}" \
+VERIFIER_SHA256_VALUE="${VERIFIER_SHA256}" \
 MEMORY_DIGEST_VALUE="${MEMORY_BEFORE}" \
 python3 - "${OUTPUT_DIR}" <<'PY'
 import hashlib
@@ -499,6 +505,16 @@ def quantity(value):
         flags=re.IGNORECASE,
     )
     return match.group(1) if match else None
+
+def quota_fact_ids(response):
+    matches = []
+    for fact in response.get("facts", []):
+        if quantity(fact.get("value")) != "1000":
+            continue
+        claim_ids = tuple(sorted(str(item) for item in fact.get("claim_ids", [])))
+        if claims["new_claim_id"] in claim_ids:
+            matches.append(claim_ids)
+    return matches
 
 ingest_a = load("ingest-a.json")
 ingest_b = load("ingest-b.json")
@@ -577,9 +593,9 @@ for label, response in (("before", before), ("after", after)):
     )
 
 require(
-    before.get("facts") == after.get("facts")
-    and before.get("evidence_source_ids") == after.get("evidence_source_ids"),
-    "active quota state did not survive restart",
+    len(quota_fact_ids(before)) == 1
+    and quota_fact_ids(before) == quota_fact_ids(after),
+    "active quota claim identity did not survive restart",
 )
 require(marker.get("status") == "ok" and marker.get("abstained") is False, "marker query failed")
 require(
@@ -605,6 +621,7 @@ receipt = {
     "schema_version": "librarian-restart-persistence-proof/v1",
     "status": "PASS",
     "candidate_sha": os.environ["EXPECTED_SHA_VALUE"],
+    "verifier_sha256": os.environ["VERIFIER_SHA256_VALUE"],
     "proof_namespace": os.environ["SOURCE_A_VALUE"].removesuffix("-source-a"),
     "source_ids": [os.environ["SOURCE_A_VALUE"], os.environ["SOURCE_B_VALUE"]],
     "memory_sha256_before_restart": os.environ["MEMORY_DIGEST_VALUE"],

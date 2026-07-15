@@ -202,6 +202,9 @@ def test_restart_proof_uses_a_stable_cross_page_claim_key() -> None:
     assert 'quantity(c["value"]) == "100"' in proof
     assert 'quantity(c["value"]) == "1000"' in proof
     assert "It does not change" not in proof
+    assert 'claim_payload["key"] = claim.key' in proof
+    assert '"verifier_sha256": os.environ["VERIFIER_SHA256_VALUE"]' in proof
+    assert "quota_fact_ids(before) == quota_fact_ids(after)" in proof
 
 
 def test_runtime_is_non_root_and_proxy_hides_paid_health() -> None:
