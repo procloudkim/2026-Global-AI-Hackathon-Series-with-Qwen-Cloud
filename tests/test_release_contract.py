@@ -182,6 +182,18 @@ def test_restart_proof_has_budget_trace_and_failure_quarantine() -> None:
     assert "active_claim_ids_loaded" in proof
 
 
+def test_restart_proof_uses_a_stable_cross_page_claim_key() -> None:
+    proof = read("deploy/verify-restart-persistence.sh")
+
+    assert "In release-proof, {namespace}'s production-quota is" in proof
+    assert "This record explicitly replaces" in proof
+    assert "{os.environ['SOURCE_A_VALUE']}" in proof
+    assert 'quota_key = f"release-proof::{namespace}::production-quota"' in proof
+    assert 'marker_key = f"release-proof::{namespace}::retention-marker"' in proof
+    assert 'quantity(c["value"]) == "100"' in proof
+    assert 'quantity(c["value"]) == "1000"' in proof
+
+
 def test_runtime_is_non_root_and_proxy_hides_paid_health() -> None:
     dockerfile = read("Dockerfile")
     compose = yaml.safe_load(read("docker-compose.yml"))

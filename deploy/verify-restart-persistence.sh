@@ -222,29 +222,32 @@ if kind == "source-a":
     payload = {
         "source_id": os.environ["SOURCE_A_VALUE"],
         "text": (
-            f"Release proof namespace {namespace}. For service {namespace}, "
-            "the production quota is 100 units per minute. "
-            f"The unrelated retention marker for {namespace} is alpha."
+            f"Release proof namespace {namespace}. "
+            f"In release-proof, {namespace}'s production-quota is "
+            "100 units per minute. "
+            f"In release-proof, {namespace}'s retention-marker is alpha."
         ),
     }
 elif kind == "source-b":
     payload = {
         "source_id": os.environ["SOURCE_B_VALUE"],
         "text": (
-            f"Release proof namespace {namespace}. This source explicitly replaces "
-            f"the earlier production quota for service {namespace}: the production "
-            "quota is 1000 units per minute. It does not change the unrelated "
-            "retention marker."
+            f"Release proof namespace {namespace}. This record explicitly replaces "
+            f"{os.environ['SOURCE_A_VALUE']}. In release-proof, {namespace}'s "
+            "production-quota is 1000 units per minute. It does not change "
+            f"{namespace}'s retention-marker."
         ),
     }
 elif kind == "quota-query":
     payload = {
-        "question": f"What is the current production quota for service {namespace}?",
+        "question": (
+            f"What is {namespace}'s current production-quota in release-proof?"
+        ),
         "top_k": 3,
     }
 elif kind == "marker-query":
     payload = {
-        "question": f"What is the unrelated retention marker for service {namespace}?",
+        "question": f"What is {namespace}'s retention-marker in release-proof?",
         "top_k": 3,
     }
 else:
@@ -388,6 +391,7 @@ runuser -u librarian -- env \
   "${SOURCE_A}" "${SOURCE_B}" >"${OUTPUT_DIR}/claim-state.json" <<'PY'
 import json
 import os
+import re
 import sys
 from librarian.claims import Claim
 from librarian.store import MemoryStore
@@ -402,9 +406,35 @@ with store.transaction():
             if source_a in claim.source_ids or source_b in claim.source_ids:
                 claims.append(claim.to_dict())
 
-old = [c for c in claims if c["value"] == "100" and source_a in c["source_ids"]]
-new = [c for c in claims if c["value"] == "1000" and source_b in c["source_ids"]]
-marker = [c for c in claims if c["value"].casefold() == "alpha" and source_a in c["source_ids"]]
+def quantity(value):
+    match = re.fullmatch(
+        r"\s*([0-9]+)(?:\s+units?\s+per\s+minute)?\s*",
+        str(value),
+        flags=re.IGNORECASE,
+    )
+    return match.group(1) if match else None
+
+namespace = source_a.removesuffix("-source-a")
+quota_key = f"release-proof::{namespace}::production-quota"
+marker_key = f"release-proof::{namespace}::retention-marker"
+old = [
+    c for c in claims
+    if c["key"] == quota_key
+    and quantity(c["value"]) == "100"
+    and source_a in c["source_ids"]
+]
+new = [
+    c for c in claims
+    if c["key"] == quota_key
+    and quantity(c["value"]) == "1000"
+    and source_b in c["source_ids"]
+]
+marker = [
+    c for c in claims
+    if c["key"] == marker_key
+    and c["value"].casefold() == "alpha"
+    and source_a in c["source_ids"]
+]
 if len(old) != 1 or old[0]["status"] != "superseded":
     raise SystemExit("old quota claim is not uniquely superseded")
 if len(new) != 1 or new[0]["status"] != "active":
@@ -463,6 +493,14 @@ def require(condition, message):
     if not condition:
         raise SystemExit(message)
 
+def quantity(value):
+    match = re.fullmatch(
+        r"\s*([0-9]+)(?:\s+units?\s+per\s+minute)?\s*",
+        str(value),
+        flags=re.IGNORECASE,
+    )
+    return match.group(1) if match else None
+
 ingest_a = load("ingest-a.json")
 ingest_b = load("ingest-b.json")
 before = load("query-before-restart.json")
@@ -508,7 +546,10 @@ for label, response in (("before", before), ("after", after)):
     require(response.get("status") == "ok", f"{label} quota query failed")
     require(response.get("abstained") is False, f"{label} quota query abstained")
     require(
-        any(str(fact.get("value")) == "1000" for fact in response.get("facts", [])),
+        any(
+            quantity(fact.get("value")) == "1000"
+            for fact in response.get("facts", [])
+        ),
         f"{label} quota answer did not select 1000",
     )
     answer_and_facts = json.dumps(

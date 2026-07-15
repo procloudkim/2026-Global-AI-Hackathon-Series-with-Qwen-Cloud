@@ -87,6 +87,83 @@ def test_explicit_possessive_evidence_repairs_scope_and_predicate(tmp_path: Path
     assert claim.predicate == "tier"
 
 
+def test_possessive_record_replacement_reconciles_across_page_titles(
+    tmp_path: Path,
+) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    namespace = "release-proof-f7dc8458eb92"
+    source_a_id = f"{namespace}-source-a"
+    quota_a = (
+        f"In release-proof, {namespace}'s production-quota is "
+        "100 units per minute."
+    )
+    quota_b = (
+        f"In release-proof, {namespace}'s production-quota is "
+        "1000 units per minute."
+    )
+    source_a = f"Release proof namespace {namespace}. {quota_a}"
+    source_b = (
+        f"Release proof namespace {namespace}. This record explicitly replaces "
+        f"{source_a_id}. {quota_b}"
+    )
+    first = ingest_source(
+        source_id=source_a_id,
+        source_text=source_a,
+        store=store,
+        router=ScriptedRouter(
+            ingest_payload(
+                title="Release proof configuration",
+                claims=[
+                    extracted_claim(
+                        value="100 units per minute",
+                        evidence_span=quota_a,
+                        scope="unspecified",
+                        subject=namespace,
+                        predicate="production quota",
+                    )
+                ],
+            )
+        ),
+        observed_at="2026-07-15T12:00:00Z",
+    )
+    second = ingest_source(
+        source_id=f"{namespace}-source-b",
+        source_text=source_b,
+        store=store,
+        router=ScriptedRouter(
+            ingest_payload(
+                title="Production quota update",
+                claims=[
+                    extracted_claim(
+                        value="1000 units per minute",
+                        evidence_span=quota_b,
+                        scope="unspecified",
+                        subject=namespace,
+                        predicate="production quota",
+                    )
+                ],
+            )
+        ),
+        observed_at="2026-07-15T12:01:00Z",
+    )
+
+    claims = [
+        Claim.from_dict(raw)
+        for page in store.list_wiki_pages()
+        for raw in store.claims_for_page(page)
+    ]
+    by_value = {claim.value: claim for claim in claims}
+    expected_key = f"release-proof::{namespace}::production-quota"
+    assert first.page.slug != second.page.slug
+    assert {claim.key for claim in claims} == {expected_key}
+    assert by_value["100 units per minute"].status is ClaimStatus.SUPERSEDED
+    assert by_value["1000 units per minute"].status is ClaimStatus.ACTIVE
+    assert by_value["100 units per minute"].claim_id in by_value[
+        "1000 units per minute"
+    ].supersedes
+    assert second.trace["heavy_arbitrations"] == 0
+
+
 def test_duplicate_claim_merges_provenance_without_new_claim(tmp_path: Path) -> None:
     store = MemoryStore(tmp_path / "memory")
     span_a = "production API quota is 100"
