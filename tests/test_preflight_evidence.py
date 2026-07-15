@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -27,8 +28,27 @@ def _fixture_repo(tmp_path: Path, first_artifact_id: str | None = None) -> Path:
     ):
         shutil.copy2(ROOT / "submission" / name, submission / name)
 
+    contract_path = submission / "hackathon-contract.json"
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    fixture_now = datetime.now(timezone.utc).isoformat()
+    contract["snapshot"]["audit_window"]["start"] = fixture_now
+    contract["snapshot"]["audit_window"]["end"] = fixture_now
+    contract_path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+    contract_sha256 = hashlib.sha256(contract_path.read_bytes()).hexdigest()
+
+    projection_path = submission / "HACKATHON_CONTRACT.md"
+    projection = projection_path.read_text(encoding="utf-8")
+    projection = re.sub(
+        r"(?<=canonical-json-sha256: )[0-9a-f]{64}",
+        contract_sha256,
+        projection,
+        count=1,
+    )
+    projection_path.write_text(projection, encoding="utf-8")
+
     manifest_path = submission / "evidence-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["contract"]["sha256"] = contract_sha256
     manifest["local_release_chain_files"] = []
     for artifact in manifest["artifacts"]:
         relative = artifact.get("path")
