@@ -18,24 +18,30 @@ Core capabilities:
 
 ## Status
 
-The claim-lifecycle implementation, deterministic evaluation lanes, canonical
-hackathon contract, and exact-SHA release tooling are implemented locally. The
-public dev suite is development evidence only. The current candidate has not
-passed a fresh live-Qwen gate, has not been deployed to Alibaba Cloud, and has
-not been promoted by an independent private holdout. No winning,
-production-ready, or submission-ready claim is made. Public-development and
-synthetic receipts are always `promoted: false`; only an independently signed
-private-holdout attestation can promote a frozen candidate.
+The frozen runtime tree passed deterministic CI, a bounded live-Qwen two-case
+gate, exact-SHA deployment to Alibaba Cloud, and an authenticated
+restart-persistence proof. Runtime commit
+`5dee1dbae5e350c4b2a1466f0002596168bbe15e` is `RELEASE_VERIFIED`; the public
+health response is bound to that SHA. It has not been promoted by an
+independent private holdout, and the remaining human/form/media evidence means
+the project is not submission-ready. No winning or general production-ready
+claim is made.
 
 Current proof and contract status:
 
 - `submission/hackathon-contract.json` is the canonical official-contract SOT.
 - `submission/evidence-manifest.json` keeps local, live, deployed, holdout, and
   submission evidence levels separate.
-- `submission/account-credit-audit.json` records masked account observations;
-  Compute eligibility remains unknown and unapproved spend is capped at USD 0.
-- `scripts/preflight.ps1 -Mode ci` may pass while deploy and submit modes still
-  fail closed on missing external evidence.
+- `proof/runs/release-live-qwen/receipt.json` records the capped live-Qwen gate;
+  it remains `promotion_status: HOLD` because it is only a two-case release
+  slice without an independent external verifier or fair live B2 comparison.
+- `proof/deployments/` contains masked infrastructure, deployment, restart, and
+  finalization receipts for the exact deployed SHA.
+- `submission/evidence/cloud-approval-receipt.json` binds verified compute
+  eligibility to an approved maximum spend of USD 0 and scheduled resource
+  release containment.
+- `scripts/preflight.ps1 -Mode ci` passes while submit mode still fails closed
+  on current-contract freshness and missing human/form/media evidence.
 
 ## Local run
 
@@ -80,7 +86,7 @@ Design rationale and research references live in
 
 MIT
 
-## Alibaba Cloud release tooling (deployment proof pending)
+## Alibaba Cloud release tooling (deployment verified)
 
 Deployment tooling supports an approved Ubuntu 22.04/24.04 Alibaba ECS or
 Simple Application Server host. It does not activate a trial, create a
@@ -93,11 +99,15 @@ resource, attach a payment method, or spend credit.
   digests, installs `/opt/librarian/releases/<sha>`, atomically switches
   `/opt/librarian/current`, and never replaces
   `/var/lib/librarian/memory`.
-- `deploy/rollback.sh` restores a previously verified immutable release and
-  stops the service if the persistent-memory digest changes.
+- `deploy/rollback.sh` restores only a release with a hash-valid
+  `RELEASE_VERIFIED` finalization receipt and stops the service if the
+  persistent-memory digest changes.
 - `deploy/verify-restart-persistence.sh` runs the approval-gated Track 1
   100→1000 vertical slice in a unique namespace and writes an append-only proof
   receipt.
+- `deploy/continue-quarantined-restart-proof.py` can promote only a complete,
+  hash-bound quarantined artifact set after revalidating exact-SHA health,
+  memory, semantics, and budgets; it performs no provider calls.
 - `.github/workflows/ci.yml` uses no Qwen key. The manual production workflow
   performs the bounded no-gold live gate before host deployment.
 - `Dockerfile` and `docker-compose.yml` remain a loopback-bound portable local

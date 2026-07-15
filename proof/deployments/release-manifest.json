@@ -1,0 +1,35 @@
+{
+  "archive_sha256": "16d4e75bde163364e2feb8ac5787eaf5bbd0701f9217c19bae5fe6794acfba51",
+  "candidate_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+  "completed_at": "2026-07-15T12:52:07.238712+00:00",
+  "event_id": "20260715T125202Z-5dee1dbae5e3",
+  "event_type": "deploy",
+  "failure": null,
+  "health": {
+    "response_sha256": "f0dab8e0b3cec5a61a1d55f0803ed6e2c1fc18f203cdc2bbf77cd65e347dc47e",
+    "status": "PASS",
+    "url": "http://127.0.0.1:8080/health"
+  },
+  "manifest_path": "/var/lib/librarian/deployments/20260715T125202Z-5dee1dbae5e3.json",
+  "memory_integrity": {
+    "after_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
+    "before_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
+    "bootstrap_applied": false,
+    "pre_candidate_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
+    "status": "PASS"
+  },
+  "memory_path": "/var/lib/librarian/memory",
+  "previous_sha": "f7dc8458eb92ac77cc0eb3ca7b1f212af874e3e4",
+  "release_gate_receipt": {
+    "path": "/var/lib/librarian/deployments/20260715T125202Z-5dee1dbae5e3.release-gate.json",
+    "sha256": "cc4e2b0c9d67bb19c7fbbd5c073e633696886a4d987880c24ed76022a44c6ff6"
+  },
+  "release_path": "/opt/librarian/releases/5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+  "restart_persistence_proof": {
+    "receipt_path": null,
+    "status": "PENDING_WAVE_5"
+  },
+  "schema_version": "librarian-release-event/v1",
+  "started_at": "2026-07-15T12:52:02Z",
+  "status": "DEPLOYED"
+}

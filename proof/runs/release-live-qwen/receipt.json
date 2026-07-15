@@ -1,0 +1,99 @@
+{
+  "candidate_tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
+  "checks": {
+    "maximum_false_forget_count": true,
+    "maximum_scope_false_forget_count": true,
+    "maximum_stale_leakage_rate": true,
+    "maximum_state_violation_count": true,
+    "maximum_transition_ledger_violation_count": true,
+    "minimum_abstention_accuracy": true,
+    "minimum_citation_entailment": true,
+    "minimum_retrieval_recall_at_k": true,
+    "minimum_scenario_success_count": true,
+    "minimum_state_transition_accuracy": true,
+    "minimum_transition_ledger_integrity": true,
+    "production_wire_citation_fidelity": true
+  },
+  "contract_version": "proof-first-live-qwen/v1",
+  "created_at": "2026-07-15T12:41:38.040907+00:00",
+  "evidence_mode": "live_runtime",
+  "hashes": {
+    "cases_sha256": "6265ae25258f680fe351c73ab595f20a286659bdb14db78ed1c53ba9f52c5608",
+    "dataset_manifest_sha256": "8e1287c77afdfc1c940d5f020d53fbabee1548a7357e6d46bd551527e5424522",
+    "gold_sha256": "8429226c9566857baede9c7944d5ee27b524408538647665ebee508ee041bda8",
+    "policy_sha256": "fda9b210c715ec6351971aff1a433194dfee05227e739715a052d02d7c31206e",
+    "runner_sha256": "b2481ff85b4af6c612e18d77ff64d57411b58fe3bf059baf4a07bd36ef474987",
+    "scorer_sha256": "21a463052a36deeb88144e395701b90a1f97ddd49686a8119bcc2c465f30d2f0"
+  },
+  "isolation_attestation": {
+    "gold_mount_absent": true,
+    "independent_external_signature": false,
+    "level": "local_docker_mount_inspection"
+  },
+  "metrics": {
+    "abstention_accuracy": 1.0,
+    "checkpoint_count": 6,
+    "citation_entailment": 1.0,
+    "context_tokens": 576,
+    "current_cited_answer_success_count": 6,
+    "current_cited_answer_success_rate": 1.0,
+    "fact_set_accuracy": 1.0,
+    "false_forget_count": 0,
+    "false_forget_rate": 0.0,
+    "retrieval_recall_at_k": 1.0,
+    "scenario_count": 2,
+    "scenario_success_count": 2,
+    "scenario_success_rate": 1.0,
+    "scope_false_forget_count": 0,
+    "stale_leakage_count": 0,
+    "stale_leakage_rate": 0.0,
+    "state_transition_accuracy": 1.0,
+    "state_violation_count": 0,
+    "tokens_per_correct_current_answer": 802.3333333333334,
+    "total_tokens": 4814,
+    "transition_ledger_integrity": 1.0,
+    "transition_ledger_violation_count": 0,
+    "wire_citation_fidelity": 1.0,
+    "wire_citation_receipt_coverage": 1.0
+  },
+  "promoted": false,
+  "promotion_blockers": [
+    "two_case_dev_slice_only",
+    "independent_external_verifier_missing",
+    "fair_live_b2_comparison_missing"
+  ],
+  "promotion_status": "HOLD",
+  "proof_boundary": {
+    "actual_qwen_runtime": true,
+    "actual_runtime_archive": true,
+    "candidate_hash_bound": true,
+    "fair_live_b2_comparison": false,
+    "gold_absent_from_runner_container": true,
+    "independent_external_verifier": false
+  },
+  "provider_usage": {
+    "calls": 13,
+    "completion_tokens": 2215,
+    "models": [
+      "qwen-flash",
+      "qwen-plus-2025-07-28"
+    ],
+    "prompt_tokens": 6698,
+    "provider_errors": 0,
+    "requested_completion_tokens": 8880,
+    "total_latency_ms": 22811,
+    "total_tokens": 8913
+  },
+  "runtime": {
+    "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    "base_url_host": "dashscope-intl.aliyuncs.com",
+    "heavy_model_configured": "qwen-plus-2025-07-28",
+    "light_model_configured": "qwen-flash",
+    "openai_version": "2.44.0",
+    "python_version": "3.12.13",
+    "transport_max_retries": 0
+  },
+  "scenario_count": 2,
+  "schema_version": "1.0",
+  "status": "LIVE_QWEN_2CASE_PASS"
+}

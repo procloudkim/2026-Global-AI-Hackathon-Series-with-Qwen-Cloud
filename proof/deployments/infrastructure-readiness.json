@@ -1,0 +1,100 @@
+{
+  "approval_ticket_sha256": "6d03dad4a512a3a373ae77bc53ad5432f0985fa235f2972e4815b35af823887c",
+  "candidate_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+  "checks": {
+    "alibaba_host_identity": {
+      "detail": "local DMI identifies Alibaba Cloud; raw DMI values are not recorded",
+      "passed": true
+    },
+    "application_not_public": {
+      "detail": "port 8080 is not bound on a wildcard address",
+      "passed": true
+    },
+    "application_secret_config": {
+      "detail": "Qwen key is present in a masked root-owned env file",
+      "passed": true
+    },
+    "bounded_runtime": {
+      "detail": "retry, timeout, completion, and rate limits are bounded",
+      "passed": true
+    },
+    "caddy_contract": {
+      "detail": "public Qwen health is denied and demo traffic is bounded/authenticated",
+      "passed": true
+    },
+    "caddy_secret_config": {
+      "detail": "domain and bcrypt Basic Auth values are present in a masked env file",
+      "passed": true
+    },
+    "deployment_target_binding": {
+      "detail": "approved target digest is bound to this pinned SSH session; raw target identifiers are not recorded",
+      "passed": true
+    },
+    "external_cloud_console_attestation": {
+      "detail": "approved masked receipt digest is supplied externally; this host check does not prove security-group, public-IP, coupon, or trial eligibility",
+      "passed": true
+    },
+    "https_listener": {
+      "detail": "host has a TCP 443 listener",
+      "passed": true
+    },
+    "https_proxy_active": {
+      "detail": "Caddy is active before application deployment",
+      "passed": true
+    },
+    "persistent_storage": {
+      "detail": "non-ephemeral filesystem has at least 1 GiB free",
+      "passed": true
+    },
+    "pinned_uv": {
+      "detail": "uv 0.11.28 is installed",
+      "passed": true
+    },
+    "qwen_runtime_parity": {
+      "detail": "host uses the allowlisted international DashScope endpoint and candidate Qwen model IDs",
+      "passed": true
+    },
+    "required_paths": {
+      "detail": "release, state, config, and unit paths exist without symlinks",
+      "passed": true
+    },
+    "runtime_identity": {
+      "detail": "non-login librarian user exists",
+      "passed": true
+    },
+    "services_enabled": {
+      "detail": "librarian and caddy are enabled",
+      "passed": true
+    },
+    "supported_os": {
+      "detail": "Ubuntu 22.04/24.04 required",
+      "passed": true
+    },
+    "systemd_contract": {
+      "detail": "service binds loopback and only memory is writable",
+      "passed": true
+    }
+  },
+  "cloud_approval_receipt_sha256": "4ac5e2491ae429e0e736f17471561486b63b33fab8ca83a38cadbbf9d48c70a5",
+  "deployment_target_sha256": "ed1f92496bb6e71311b90d7547ef2d9aa6b7a0d347b3f0518e25d64c004faa5c",
+  "observed_at": "2026-07-15T12:51:08.745998+00:00",
+  "provider_signal": "alibaba_cloud_dmi",
+  "runtime_contract": {
+    "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    "heavy_model": "qwen-plus-2025-07-28",
+    "light_model": "qwen-flash"
+  },
+  "runtime_limits": {
+    "qwen_max_completion_tokens": 1600,
+    "qwen_max_retries": 0,
+    "qwen_timeout_seconds": 30.0,
+    "rate_limit_per_minute": 30
+  },
+  "schema_version": "librarian-infrastructure-readiness/v1",
+  "status": "PASS",
+  "storage": {
+    "available_bytes": 96806662144,
+    "filesystem_type": "ext4",
+    "mount_target": "/"
+  }
+}

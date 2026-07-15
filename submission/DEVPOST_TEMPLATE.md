@@ -75,8 +75,10 @@ status is `verified`:
 | Learning summary | `learning_summary` |
 | Eligibility confirmations | `eligibility_confirmations` |
 
-No live URL, video URL, Workbench screenshot, or successful Alibaba deployment
-is claimed in this draft yet.
+The live URL, bounded Qwen receipt, masked Alibaba infrastructure receipt,
+exact-SHA deployment manifest, restart proof, and finalization receipt are now
+verified in the evidence manifest. The video, architecture refresh, Workbench
+screenshot, form receipts, and human confirmations remain incomplete.
 
 ## New or existing project
 
@@ -88,21 +90,26 @@ changes made after 2026-05-26.
 
 ## Judge testing instructions draft
 
-After the public endpoint and candidate receipt are verified, the final form
-instructions will direct judges to:
+Use the Basic Auth username and password supplied privately in the Devpost
+testing field; credentials are intentionally absent from the public repository.
+Then:
 
-1. Open the free judge-access URL recorded in the evidence manifest.
-2. Ingest an initial source that sets the production quota to 100.
-3. Ingest a second source that explicitly replaces it with 1000.
-4. Query the current production quota and verify the answer is 1000, cites the
-   second source, and excludes 100 from both the answer and selected context.
-5. Inspect the public restart-persistence receipt for the same deployed commit
-   SHA and memory-state digest before and after service restart.
+1. Open `https://43.106.13.57.sslip.io` and authenticate.
+2. `POST /ingest` with
+   `{"source_id":"judge-source-a","text":"In judge-demo, librarian's production-quota is 100 units per minute."}`.
+3. `POST /ingest` with
+   `{"source_id":"judge-source-b","text":"This record explicitly replaces judge-source-a. In judge-demo, librarian's production-quota is 1000 units per minute."}`.
+4. `POST /query` with
+   `{"question":"What is librarian's current production-quota in judge-demo?","top_k":3}`.
+5. Verify the answer selects `1000`, cites `judge-source-b`, and does not place
+   standalone `100` in the answer or selected facts.
+6. Inspect `proof/deployments/restart-persistence.json` and
+   `proof/deployments/release-finalization.json`; both bind runtime commit
+   `5dee1dbae5e350c4b2a1466f0002596168bbe15e` and matching memory digests.
 
-The exact endpoint, authentication instructions, request bodies, expected
-responses, and receipt URLs must be inserted only after deployed smoke tests
-pass. Until then this section remains a draft even though it contains no
-synthetic placeholder URL.
+The endpoint and request bodies are verified. The repository must never contain
+the Basic Auth secret; copy it only into the judge-visible testing field before
+submission.
 
 ## AI tools disclosure draft
 
@@ -123,7 +130,9 @@ and submission completeness as separate proof levels.
 
 ## Proof boundary
 
-No live Qwen behavioral, Alibaba restart-persistence, or private-promotion
-receipt is verified for the current candidate. Legacy token benchmarks and
-pre-candidate runs are not submission evidence. Only candidate-bound artifacts
-marked `verified` in the evidence manifest may be used in the final submission.
+The current candidate has verified live-Qwen, Alibaba deployment,
+restart-persistence, and release-finalization receipts. The live gate is a
+two-case release slice, not an independent private-holdout promotion:
+`promotion_status` remains `HOLD`. Legacy token benchmarks and pre-candidate
+runs are not submission evidence. Only candidate-bound artifacts marked
+`verified` in the evidence manifest may be used in the final submission.

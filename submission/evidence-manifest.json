@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-14T20:22:00+09:00",
+  "generated_at": "2026-07-15T22:15:48+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
@@ -8,9 +8,9 @@
   "candidate": {
     "status": "frozen",
     "baseline_head_sha": "d46ae14c6a6f06eeaaf24b6716b809a361248175",
-    "commit_sha": null,
+    "commit_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
     "tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
-    "note": "The source and evaluator tree is frozen. The exact commit SHA is supplied by the release workflow and recorded in post-deployment evidence; it cannot be embedded in its own commit without a self-reference."
+    "note": "The frozen source/evaluator tree was deployed at exact runtime commit 5dee1dbae5e350c4b2a1466f0002596168bbe15e. Later commits change only release-proof tooling/evidence and retain the same candidate tree hash."
   },
   "status_definitions": {
     "verified": "Evidence is complete on the surface required by the contract.",
@@ -35,6 +35,7 @@
     "deploy/deploy.sh",
     "deploy/rollback.sh",
     "deploy/cloud-approval.schema.json",
+    "deploy/continue-quarantined-restart-proof.py",
     "deploy/inspect-infrastructure.py",
     "deploy/finalize-release.py",
     "deploy/verify-cloud-approval.py",
@@ -46,6 +47,11 @@
     "deploy/release-manifest.schema.json",
     "proof/Dockerfile.live",
     "proof/live_qwen_contract.py",
+    "proof/runs/release-live-qwen/receipt.json",
+    "proof/deployments/infrastructure-readiness.json",
+    "proof/deployments/release-manifest.json",
+    "proof/deployments/restart-persistence.json",
+    "proof/deployments/release-finalization.json",
     "src/librarian/config.py",
     "src/librarian/llm.py",
     "src/librarian/prompts.py",
@@ -144,11 +150,12 @@
       "id": "public_demo_url",
       "requirement_id": "free_judge_access",
       "kind": "url",
-      "status": "pending_external",
+      "status": "verified",
       "path": null,
-      "value": null,
+      "value": "https://43.106.13.57.sslip.io",
       "sha256": null,
-      "required_by": ["submit"]
+      "required_by": ["submit"],
+      "note": "Authenticated public health returned HTTP 200 with deployed_sha 5dee1dbae5e350c4b2a1466f0002596168bbe15e. Judge credentials must be supplied only through the private Devpost testing instructions."
     },
     {
       "id": "public_demo_video",
@@ -165,25 +172,25 @@
       "id": "live_qwen_behavioral_receipt",
       "requirement_id": "qwen_cloud_model",
       "kind": "behavioral_receipt",
-      "status": "pending_external",
-      "path": null,
+      "status": "verified",
+      "path": "proof/runs/release-live-qwen/receipt.json",
       "expected_path": "proof/runs/release-live-qwen/receipt.json",
-      "value": null,
-      "sha256": null,
+      "value": "LIVE_QWEN_2CASE_PASS",
+      "sha256": "53cafcf42ece8ca33b37f8b5a44d929266fe401638fddb19ebf94d9d2c59e5f9",
       "required_by": ["deploy", "submit"],
-      "note": "Deployment remains blocked until an explicitly approved, bounded two-case live Qwen behavioral run passes for the exact candidate."
+      "note": "The approved live Qwen two-case gate passed with 13 calls, 8,913 tokens, and zero provider errors for candidate tree 5f4416e2. This is release evidence only; private-holdout promotion remains HOLD."
     },
     {
       "id": "infrastructure_readiness_receipt",
       "requirement_id": "alibaba_cloud_backend",
       "kind": "infrastructure_receipt",
-      "status": "pending_external",
-      "path": null,
+      "status": "verified",
+      "path": "proof/deployments/infrastructure-readiness.json",
       "expected_path": "proof/deployments/infrastructure-readiness.json",
-      "value": null,
-      "sha256": null,
+      "value": "PASS",
+      "sha256": "77d19c71ff6fe123f2f43f6593c23c1fea7f6525e8692e4949d546a0411035a2",
       "required_by": ["deploy", "submit"],
-      "note": "This receipt may be created only after separate approval for any trial activation, account change, coupon use, or resource creation."
+      "note": "Masked read-only host inspection passed for exact SHA 5dee1dbae5e3 and the approved deployment-target digest under the zero-cost receipt."
     },
     {
       "id": "cloud_approval_receipt",
@@ -201,11 +208,11 @@
       "id": "english_description",
       "requirement_id": "text_description",
       "kind": "file",
-      "status": "needs_refresh",
+      "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": null,
-      "hash_status": "pending_candidate_freeze",
+      "sha256": "b93e95d9691ca947f63992237d4ac32f28931a1b223b0719a53e02d6eb920a57",
+      "hash_status": "candidate_bound",
       "required_by": ["submit"]
     },
     {
@@ -234,11 +241,11 @@
       "id": "testing_instructions",
       "requirement_id": "testing_instructions",
       "kind": "file",
-      "status": "needs_refresh",
+      "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": null,
-      "hash_status": "pending_candidate_freeze",
+      "sha256": "b93e95d9691ca947f63992237d4ac32f28931a1b223b0719a53e02d6eb920a57",
+      "hash_status": "candidate_bound",
       "required_by": ["submit"]
     },
     {
@@ -277,23 +284,37 @@
       "id": "deployed_release_manifest",
       "requirement_id": "persistent_working_project",
       "kind": "deployment_receipt",
-      "status": "pending_external",
-      "path": null,
+      "status": "verified",
+      "path": "proof/deployments/release-manifest.json",
       "expected_path": "proof/deployments/release-manifest.json",
-      "value": null,
-      "sha256": null,
-      "required_by": ["submit"]
+      "value": "DEPLOYED:5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+      "sha256": "b24f3955f0f7b04939756ba75de6422713ca6328bba445b5b0e9e43169ce3dc8",
+      "required_by": ["submit"],
+      "note": "Immutable Git archive, exact-SHA local health, release-gate hash, and persistent-memory integrity all passed."
     },
     {
       "id": "restart_persistence_receipt",
       "requirement_id": "persistent_working_project",
       "kind": "behavioral_receipt",
-      "status": "pending_external",
-      "path": null,
+      "status": "verified",
+      "path": "proof/deployments/restart-persistence.json",
       "expected_path": "proof/deployments/restart-persistence.json",
-      "value": null,
-      "sha256": null,
-      "required_by": ["submit"]
+      "value": "PASS",
+      "sha256": "f22a363f586c498cd3f8eecd107e2137f124dddbd674856b9287826ffc1f32eb",
+      "required_by": ["submit"],
+      "note": "Five bounded API operations and five logical provider calls used 5,123 tokens. Exact-SHA health and memory digests matched across restart; hash-bound quarantine continuation repeated no provider calls."
+    },
+    {
+      "id": "release_finalization_receipt",
+      "requirement_id": "persistent_working_project",
+      "kind": "deployment_receipt",
+      "status": "verified",
+      "path": "proof/deployments/release-finalization.json",
+      "expected_path": "proof/deployments/release-finalization.json",
+      "value": "RELEASE_VERIFIED",
+      "sha256": "04b139c9b7c5f21f0025b95debc463940e4fd1484d7a3d884b74b34df87335de",
+      "required_by": ["submit"],
+      "note": "Finalization binds the DEPLOYED manifest and restart PASS receipt by SHA-256 for candidate 5dee1dbae5e3."
     }
   ]
 }

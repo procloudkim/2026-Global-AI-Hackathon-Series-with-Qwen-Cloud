@@ -7,4 +7,6 @@ __pycache__/
 graphify-out/
 QWEN-*.txt
 memory/
-proof/runs/
+proof/runs/*
+!proof/runs/release-live-qwen/
+!proof/runs/release-live-qwen/receipt.json

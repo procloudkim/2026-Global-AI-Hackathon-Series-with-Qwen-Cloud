@@ -1,0 +1,72 @@
+{
+  "artifact_sha256": {
+    "quarantined/claim-state.json": "23690fcd3a9a49ff486c599a295b1a45179c102276abca75c5174de14a258866",
+    "quarantined/health-after-restart.json": "f0dab8e0b3cec5a61a1d55f0803ed6e2c1fc18f203cdc2bbf77cd65e347dc47e",
+    "quarantined/health-before.json": "f0dab8e0b3cec5a61a1d55f0803ed6e2c1fc18f203cdc2bbf77cd65e347dc47e",
+    "quarantined/ingest-a.json": "b6cd74fd2d6d7004ad6a007dfc11f1426cf9baf6166052181c15b4dbfbfe2cd0",
+    "quarantined/ingest-b.json": "78614cde7945f02aaee447fa35bfdab2195bf4cdace5f668de255965dfc60f04",
+    "quarantined/memory-after.sha256": "79102800cb9c5841b9f8f80409f5d2d45f46ee64f225abf0931ee1de5522a41d",
+    "quarantined/memory-before.sha256": "79102800cb9c5841b9f8f80409f5d2d45f46ee64f225abf0931ee1de5522a41d",
+    "quarantined/query-after-restart.json": "e78052c87a8537aacb92a238f9ad889fdaa2acbee11c200de50faf70d36fe070",
+    "quarantined/query-before-restart.json": "e78052c87a8537aacb92a238f9ad889fdaa2acbee11c200de50faf70d36fe070",
+    "quarantined/query-marker-after-restart.json": "9b3e127d00a95360183312a2b4aae3aa38c55be1d67364985b460c984c97805a",
+    "quarantined/restart-persistence-failure.json": "d833291b0d0ea5d5330796277d0372a4e347e9ecaaee94e719d4dc07037dca88",
+    "quarantined/stats-after.json": "58db1602817f40f64d47ab8d09ad6b7d2d18cf733e8d253e209bb999f97e060a",
+    "quarantined/stats-before.json": "4bd95ccccd674503dc23deb90bce8074ecc3954a663e4a8dfa792e5bc14c9b9d",
+    "quarantined/stats-checkpoint-1.json": "551edcf1f068c9de9cd905ac00d7541dbf5c220b058d2c591a04d5c4137687e1",
+    "quarantined/stats-checkpoint-2.json": "ca873acd45a58810bda74d0217e8d43e181a63bf66752023624f58e2e1af7056",
+    "quarantined/stats-checkpoint-3.json": "0da171ef3c2352ce15ebc8d4af744eb9f65bb3cf3a85f04c496ef33ad61d205d",
+    "quarantined/stats-checkpoint-4.json": "80fb97bd14b8544b5386630a114914642d0589ddc76ffb79235a187797f35fd3"
+  },
+  "assertions": {
+    "decision_event_evidence_present": true,
+    "exact_sha_health_present": true,
+    "memory_unchanged_after_quarantine": true,
+    "new_claim_active": true,
+    "old_claim_superseded": true,
+    "old_value_absent_from_answer_and_selected_context": true,
+    "quarantined_artifacts_hash_verified": true,
+    "qwen_usage_present": true,
+    "source_b_evidence_present": true,
+    "top_k_and_context_trace_present": true,
+    "unrelated_claim_preserved": true
+  },
+  "budget": {
+    "maximum_api_operations": 5,
+    "maximum_logical_provider_calls_from_route_trace": 10,
+    "maximum_provider_attempts_with_retry_zero": 10,
+    "maximum_retries_per_provider_call": 0,
+    "maximum_total_tokens": 25000,
+    "token_checkpoint_after_each_api_operation": true
+  },
+  "candidate_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+  "continued_from_quarantine": {
+    "exit_code": 1,
+    "failure_line": 478,
+    "failure_receipt": "/var/lib/librarian/deployments/proofs/release-proof-5dee1dbae5e3-final20260715130054/restart-persistence-failure.json",
+    "failure_receipt_sha256": "d833291b0d0ea5d5330796277d0372a4e347e9ecaaee94e719d4dc07037dca88",
+    "original_verifier_sha256": "b7f1722ff4012a3523c52bd78abbcdc4acd5932bb78c870064f0d4d59f95226e",
+    "proof_dir": "/var/lib/librarian/deployments/proofs/release-proof-5dee1dbae5e3-final20260715130054"
+  },
+  "created_at": "2026-07-15T13:10:54.131577+00:00",
+  "memory_sha256_after_restart": "f8c46173feeff554cf9e60c63582857b2266d00174532a93dcb8cf10f404bd82",
+  "memory_sha256_before_restart": "f8c46173feeff554cf9e60c63582857b2266d00174532a93dcb8cf10f404bd82",
+  "proof_namespace": "release-proof-5dee1dbae5e3-final20260715130054",
+  "quota_old_claim_trace_modes": {
+    "after": "not_retrieved",
+    "before": "not_retrieved"
+  },
+  "schema_version": "librarian-restart-persistence-proof/v1",
+  "source_ids": [
+    "release-proof-5dee1dbae5e3-final20260715130054-source-a",
+    "release-proof-5dee1dbae5e3-final20260715130054-source-b"
+  ],
+  "status": "PASS",
+  "usage": {
+    "api_operations": 5,
+    "logical_provider_calls_from_route_trace": 5,
+    "maximum_provider_attempts_from_configured_retry": 5,
+    "total_tokens": 5123
+  },
+  "verifier_sha256": "c9807854184e9f5f03eb1aa9ef55d127adfea0f453ffbab89371314aa851a4e4"
+}
