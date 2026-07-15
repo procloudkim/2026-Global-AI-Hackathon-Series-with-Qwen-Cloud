@@ -162,6 +162,7 @@ WorkingDirectory=${CURRENT_LINK}
 EnvironmentFile=${CONFIG_ROOT}/librarian.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=${CURRENT_LINK}/src
 Environment=LIBRARIAN_MEMORY_ROOT=${MEMORY_ROOT}
 ExecStart=/usr/bin/bash -c 'export LIBRARIAN_DEPLOYED_SHA="\$(cat ${CURRENT_LINK}/.deployed-sha)"; exec ${CURRENT_LINK}/.venv/bin/uvicorn librarian.main:app --host 127.0.0.1 --port 8080 --no-access-log'
 Restart=on-failure

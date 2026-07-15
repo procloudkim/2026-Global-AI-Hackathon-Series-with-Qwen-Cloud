@@ -473,6 +473,12 @@ fi
 
 atomic_link "${RELEASE_PATH}"
 SWITCHED=1
+install -d -m 0755 -o root -g root "/etc/systemd/system/${SERVICE_NAME}.service.d"
+cat >"/etc/systemd/system/${SERVICE_NAME}.service.d/librarian-runtime.conf" <<EOF
+[Service]
+Environment=PYTHONPATH=${CURRENT_LINK}/src
+EOF
+systemctl daemon-reload
 systemctl start "${SERVICE_NAME}.service"
 wait_for_health "${CANDIDATE_SHA}"
 HEALTH_STATUS="PASS"

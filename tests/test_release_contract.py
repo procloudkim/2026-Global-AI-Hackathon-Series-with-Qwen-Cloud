@@ -132,6 +132,21 @@ def test_deploy_builds_non_relocatable_venv_at_final_release_path() -> None:
     assert '"${RELEASE_PATH}/.venv/bin/python" -c' in deploy
 
 
+def test_systemd_runtime_can_import_the_src_layout_on_new_and_existing_hosts() -> None:
+    setup = read("deploy/setup.sh")
+    deploy = read("deploy/deploy.sh")
+    environment = "Environment=PYTHONPATH=${CURRENT_LINK}/src"
+
+    assert environment in setup
+    assert environment in deploy
+    drop_in = deploy.index("librarian-runtime.conf")
+    daemon_reload = deploy.index("systemctl daemon-reload", drop_in)
+    service_start = deploy.index(
+        'systemctl start "${SERVICE_NAME}.service"', daemon_reload
+    )
+    assert drop_in < daemon_reload < service_start
+
+
 def test_failed_candidate_is_not_left_as_current_or_used_as_rollback() -> None:
     deploy = read("deploy/deploy.sh")
 
