@@ -33,6 +33,14 @@ def _fixture_repo(tmp_path: Path, first_artifact_id: str | None = None) -> Path:
     fixture_now = datetime.now(timezone.utc).isoformat()
     contract["snapshot"]["audit_window"]["start"] = fixture_now
     contract["snapshot"]["audit_window"]["end"] = fixture_now
+    for source_item in contract["sources"]:
+        relative = source_item.get("content_path")
+        if not relative:
+            continue
+        source = ROOT / relative
+        destination = repo / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
     contract_path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
     contract_sha256 = hashlib.sha256(contract_path.read_bytes()).hexdigest()
 

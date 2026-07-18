@@ -1,16 +1,16 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-15T22:15:48+09:00",
+  "generated_at": "2026-07-18T18:34:00+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
-    "sha256": "e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a"
+    "sha256": "66cd2090d6b0ace5633b15d44d94beaa28f08c159068c4a209fea1a5340f3353"
   },
   "candidate": {
     "status": "frozen",
-    "baseline_head_sha": "d46ae14c6a6f06eeaaf24b6716b809a361248175",
-    "commit_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
-    "tree_sha256": "5f4416e2968b4c549dff6c9d603478ccb1a032fcfd652ff2424396d9a4910c43",
-    "note": "The frozen source/evaluator tree was deployed at exact runtime commit 5dee1dbae5e350c4b2a1466f0002596168bbe15e. Later commits change only release-proof tooling/evidence and retain the same candidate tree hash."
+    "baseline_head_sha": "57e706c17659f3007b21a97342e3783c14ee49ea",
+    "commit_sha": "be64ca024a595d2dd73c6e2aba68009f7c187e11",
+    "tree_sha256": "8e4a3c3e18bd58a402a1198b0b6b172bbc47f3fecdfd74afa785f0e0f4991526",
+    "note": "The frozen product tree adds the guided demo and provider-free memory explanation to the previously verified runtime. Deployment receipts still describe 5dee1d until the new exact-SHA workflow completes."
   },
   "status_definitions": {
     "verified": "Evidence is complete on the surface required by the contract.",
@@ -85,7 +85,8 @@
       "expected_path": "submission/evidence/selected-track-receipt.png",
       "value": "Track 1 MemoryAgent",
       "sha256": null,
-      "required_by": ["submit"]
+      "required_by": ["submit"],
+      "note": "The Devpost connector verified registration and a linked submission_pre_draft project, but it does not expose the saved custom Track answer; a form receipt or submitted custom answer is still required."
     },
     {
       "id": "public_repository",
@@ -131,9 +132,9 @@
       "source_path": "submission/architecture.mmd",
       "value": null,
       "sha256": null,
-      "hash_status": "pending_candidate_freeze",
+      "hash_status": "pending_final_deployment",
       "required_by": ["submit"],
-      "note": "Regenerate the English image from architecture.mmd after candidate freeze; the stale pre-release image was removed."
+      "note": "The prior image describes deployed SHA 5dee1d and is intentionally invalidated. Regenerate and bind a clean product architecture image after the guided-UI exact-SHA deployment."
     },
     {
       "id": "workbench_deployment_screenshot",
@@ -200,9 +201,9 @@
       "path": "submission/evidence/cloud-approval-receipt.json",
       "expected_path": "submission/evidence/cloud-approval-receipt.json",
       "value": "APPROVED_ZERO_COST",
-      "sha256": "4ac5e2491ae429e0e736f17471561486b63b33fab8ca83a38cadbbf9d48c70a5",
+      "sha256": "f21f9beb3740415c086ea26b4694c6042db7a2a3896e08529eaf1c39ddeea548",
       "required_by": ["deploy", "submit"],
-      "note": "Candidate-tree, approval-ticket, and deployment-target hashes bind the zero-cost ECS trial approval. Alerts remain honestly console_blocked; scheduled release of the instance and system disk is the required hard containment control. Account identifiers and coupon codes are masked or omitted."
+      "note": "The user-authorized final-submission release binds the guided-UI candidate tree, approval ticket, and existing zero-cost ECS trial target. Alerts remain honestly console_blocked; scheduled release of the instance and system disk is the required hard containment control. Account identifiers and coupon codes are masked or omitted."
     },
     {
       "id": "english_description",

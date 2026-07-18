@@ -10,15 +10,24 @@
     "repository_documentation"
   ],
   "snapshot": {
-    "status": "public_contract_verified_authenticated_form_hash_pending",
+    "status": "verified",
     "audit_window": {
-      "start": "2026-07-14T12:44:18.586+09:00",
-      "end": "2026-07-14T12:46:29.848+09:00",
-      "precision": "public contract was re-read at 12:44 KST; exact HTTP response fetch timestamps and body-byte hashes were captured at 12:46 KST"
+      "start": "2026-07-18T18:18:16+09:00",
+      "end": "2026-07-18T18:32:02+09:00",
+      "precision": "Devpost Hackathons connector returned complete overview, rules, submission requirements, key dates, judging criteria, announcements, and authenticated project observations; the normalized submission requirements were unchanged except fetched_at"
     },
     "timezone": "Asia/Seoul",
-    "source_content_hashes_complete": false,
-    "hash_method": "SHA-256 of the exact HTTP response body bytes returned for that fetch; dynamic pages must be refreshed before submission",
+    "source_content_hashes_complete": true,
+    "hash_method": "Public sources retain SHA-256 of their captured HTTP response bodies; the authenticated submission form uses SHA-256 of the repository-contained normalized Devpost connector receipt",
+    "connector_observation": {
+      "provider": "Devpost Hackathons",
+      "hackathon_id": 29966,
+      "hackathon_slug": "qwencloud-hackathon",
+      "data_completeness": "complete",
+      "submission_requirements_fetched_at": "2026-07-18T09:32:00Z",
+      "receipt_path": "submission/evidence/devpost-submission-requirements-20260715T134537Z.json",
+      "receipt_sha256": "5b5eff73d6cc5a39ab0356cb64c538e4e1505a63fe3295371630a1d52d35dcd1"
+    },
     "freshness": {
       "max_age_hours": {
         "ci": 168,
@@ -82,12 +91,14 @@
       "observation_status": "verified_in_authenticated_session",
       "http_status": 200,
       "fetched_at": {
-        "window_start": "2026-07-14T11:45:00+09:00",
-        "window_end": "2026-07-14T12:00:00+09:00",
-        "precision": "audit_window_only"
+        "window_start": "2026-07-18T09:32:00Z",
+        "window_end": "2026-07-18T09:32:00Z",
+        "precision": "connector_fetched_at"
       },
-      "content_sha256": null,
-      "hash_status": "not_captured_authenticated_surface",
+      "content_sha256": "5b5eff73d6cc5a39ab0356cb64c538e4e1505a63fe3295371630a1d52d35dcd1",
+      "content_path": "submission/evidence/devpost-submission-requirements-20260715T134537Z.json",
+      "capture_method": "Devpost Hackathons get_submission_requirements normalized JSON receipt",
+      "hash_status": "captured",
       "hash_required_for_submission": true
     },
     {
@@ -365,12 +376,6 @@
       "source_ids": ["devpost_rules", "devpost_current_submission_form"]
     },
     {
-      "id": "testing_instructions",
-      "classification": "mandatory_form_field",
-      "rule": "Provide reproducible judge testing instructions.",
-      "source_ids": ["devpost_current_submission_form"]
-    },
-    {
       "id": "ai_tools_disclosure",
       "classification": "mandatory_form_field",
       "rule": "Accurately disclose AI tools used.",
@@ -393,6 +398,12 @@
     {
       "id": "blog_or_social_post",
       "classification": "optional",
+      "source_ids": ["devpost_current_submission_form"]
+    },
+    {
+      "id": "testing_instructions",
+      "classification": "optional_recommended_form_field",
+      "rule": "Provide reproducible judge testing instructions even though the current form marks the field optional.",
       "source_ids": ["devpost_current_submission_form"]
     },
     {
@@ -421,14 +432,14 @@
     "source_ids": ["devpost_rules"],
     "note": "Rules also says equally weighted; the explicit percentages are used because they total 100. This is recorded in source_conflicts."
   },
-  "submission_fields_basis": "Required, optional, and conditional flags reflect the authenticated current submission-form UI observed during the 2026-07-14 audit unless a field entry says its ID was not captured; the Rules remain authoritative for legal requirements.",
+  "submission_fields_basis": "Required flags and field identifiers reflect the complete Devpost Hackathons connector observation fetched at 2026-07-18T09:32:00Z; semantic applicability remains conditional where the form label says so, and the Rules remain authoritative for legal requirements.",
   "submission_fields": [
     {"id": 27536, "key": "submitter_type", "required": true},
     {"id": 27538, "key": "organization", "required": false},
     {"id": 27537, "key": "countries", "required": true},
     {"id": 27551, "key": "new_or_existing_project", "required": true},
     {"id": 27539, "key": "start_date", "required": true},
-    {"id": 27540, "key": "existing_project_update_explanation", "required": "conditional"},
+    {"id": 27540, "key": "existing_project_update_explanation", "required": true, "applies_when": "project existed before 2026-05-26"},
     {"id": 27541, "key": "track_selection", "required": true},
     {"id": 27542, "key": "public_repository_url", "required": true},
     {"id": 27543, "key": "alibaba_cloud_proof_code_url", "required": true},
@@ -440,8 +451,8 @@
     {"id": 27548, "key": "eligibility_confirmation_1", "required": true},
     {"id": 27549, "key": "eligibility_confirmation_2", "required": true},
     {"id": 27550, "key": "eligibility_confirmation_3", "required": true},
-    {"id": 27898, "key": "testing_instructions", "required": true},
-    {"id": null, "key": "public_demo_video", "required": true, "id_status": "standard_field_id_not_captured"}
+    {"id": 27898, "key": "testing_instructions", "required": false},
+    {"id": null, "key": "public_demo_video", "required": true, "id_status": "global_deliverable_without_custom_field_id"}
   ],
   "repository_projection_policy": {
     "canonical_path": "submission/hackathon-contract.json",

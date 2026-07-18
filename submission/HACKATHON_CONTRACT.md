@@ -1,6 +1,6 @@
 # Hackathon Contract Projection
 
-<!-- canonical-json-sha256: e3b835936832c1cdc2e55458c17d1d17ec4debfc0df1b788c692726f3370df9a -->
+<!-- canonical-json-sha256: 66cd2090d6b0ace5633b15d44d94beaa28f08c159068c4a209fea1a5340f3353 -->
 
 This file is a human navigation layer, not an independent source of truth.
 The canonical contract is [`hackathon-contract.json`](hackathon-contract.json),
@@ -25,13 +25,16 @@ $contract.mandatory_requirements | Select-Object id, classification, rule
 $contract.submission_fields | Select-Object id, key, required
 ```
 
-The 2026-07-14 public refresh captured exact Rules judging labels and weights,
-per-source fetch timestamps, and HTTP response-body digests. It also records
-the Rules/dates-page and Rules-internal wording conflicts without silently
-resolving them. The authenticated submission-form response digest is still
-pending, so `source_content_hashes_complete` remains false and submit mode must
-fail closed until a final authenticated refresh. A missing value must never be
-replaced by an inferred label, timestamp, field identifier, or digest.
+The 2026-07-18 refresh used the authenticated Devpost Hackathons connector to
+re-read the overview, Rules, current submission requirements, key dates,
+judging criteria, and announcements. The complete 18-field submission response
+is frozen in `evidence/devpost-submission-requirements-20260715T134537Z.json`
+and its file digest is bound into the canonical source entry. This observation
+corrected one material drift: field `27898` (Testing Instructions) is optional
+in the current form, while the repository continues to require it as an
+internal judge-readiness gate. The normalized form response was unchanged from
+the 2026-07-15 capture except for its fetch timestamp. Rules/date wording conflicts remain recorded
+without silently resolving them.
 
 ## Validation modes
 

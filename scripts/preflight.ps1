@@ -184,12 +184,15 @@ try {
     }
   }
 
-  $Requirements = @($Contract.mandatory_requirements)
+  $MandatoryRequirements = @($Contract.mandatory_requirements)
+  $OptionalRequirements = @($Contract.optional_items)
+  $Requirements = @($MandatoryRequirements) + @($OptionalRequirements)
   $RequirementIds = @($Requirements | ForEach-Object { [string]$_.id })
-  if ($Requirements.Count -eq 0 -or @($RequirementIds | Select-Object -Unique).Count -ne $RequirementIds.Count) {
-    Stop-Preflight "Mandatory requirement IDs are empty or duplicated."
+  if ($MandatoryRequirements.Count -eq 0 -or
+      @($RequirementIds | Select-Object -Unique).Count -ne $RequirementIds.Count) {
+    Stop-Preflight "Requirement IDs are empty or duplicated."
   }
-  foreach ($Requirement in $Requirements) {
+  foreach ($Requirement in $MandatoryRequirements) {
     if ([string]$Requirement.classification -notin @(
       "mandatory",
       "mandatory_if_existing_project",
@@ -203,13 +206,27 @@ try {
       }
     }
   }
+  foreach ($Requirement in $OptionalRequirements) {
+    if ([string]$Requirement.classification -notin @(
+      "optional",
+      "optional_recommended_form_field",
+      "optional_technical_signal_not_contract"
+    )) {
+      Stop-Preflight "Optional requirement '$($Requirement.id)' has an unsupported classification."
+    }
+    foreach ($SourceId in @($Requirement.source_ids)) {
+      if ($SourceIds -notcontains [string]$SourceId) {
+        Stop-Preflight "Optional requirement '$($Requirement.id)' references unknown source '$SourceId'."
+      }
+    }
+  }
 
   $FormFields = @($Contract.submission_fields)
   $CapturedFieldIds = @($FormFields | Where-Object { $null -ne $_.id } | ForEach-Object { [string]$_.id })
   if (@($CapturedFieldIds | Select-Object -Unique).Count -ne $CapturedFieldIds.Count) {
     Stop-Preflight "Submission form contains duplicate captured field IDs."
   }
-  foreach ($RequiredFieldKey in @(
+  foreach ($ExpectedFieldKey in @(
     "track_selection",
     "public_repository_url",
     "alibaba_cloud_proof_code_url",
@@ -219,8 +236,8 @@ try {
     "testing_instructions",
     "public_demo_video"
   )) {
-    if (@($FormFields | Where-Object { $_.key -eq $RequiredFieldKey }).Count -ne 1) {
-      Stop-Preflight "Required current form field '$RequiredFieldKey' is absent or duplicated."
+    if (@($FormFields | Where-Object { $_.key -eq $ExpectedFieldKey }).Count -ne 1) {
+      Stop-Preflight "Expected current form field '$ExpectedFieldKey' is absent or duplicated."
     }
   }
 
@@ -493,6 +510,16 @@ try {
     foreach ($Source in $Sources | Where-Object { $_.hash_required_for_submission -eq $true }) {
       if (-not (Test-Sha256 $Source.content_sha256) -or [string]$Source.hash_status -ne "captured") {
         Stop-Preflight "Submit source '$($Source.id)' lacks a captured content digest."
+      }
+      if ($null -ne $Source.PSObject.Properties["content_path"] -and
+          -not [string]::IsNullOrWhiteSpace([string]$Source.content_path)) {
+        $SourceFile = Resolve-RepositoryArtifactFile `
+          -Root $ResolvedRoot `
+          -ArtifactId "submit source '$($Source.id)'" `
+          -Path ([string]$Source.content_path)
+        if ((Get-Sha256 -Path $SourceFile) -ne ([string]$Source.content_sha256).ToLowerInvariant()) {
+          Stop-Preflight "Submit source '$($Source.id)' content file does not match its captured digest."
+        }
       }
     }
     if ([string]$Contract.judging_criteria.status -eq "not_captured") {
