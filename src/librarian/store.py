@@ -161,15 +161,11 @@ class MemoryStore:
                 self.graph_path,
                 json.dumps(self._empty_graph(), ensure_ascii=False),
             )
-        else:
-            try:
-                graph = json.loads(self.graph_path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-                graph = {}
-            if not isinstance(graph, dict) or graph.get(
-                "graph_schema_version"
-            ) != _GRAPH_SCHEMA_VERSION:
-                self.refresh_graph()
+        # Reopening an existing store must be side-effect free. In particular,
+        # deployment probes instantiate MemoryStore while the previous service
+        # is stopped and require the persistent-memory digest to remain stable.
+        # A stale derived graph is reported by projection_is_consistent() and is
+        # rebuilt by an explicit repair or the next canonical mutation.
 
     def save_raw_source(self, source_id: str, content: str) -> Path:
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()

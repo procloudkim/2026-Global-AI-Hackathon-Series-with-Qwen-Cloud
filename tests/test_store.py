@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import multiprocessing
 from pathlib import Path
 
@@ -41,6 +42,35 @@ def test_raw_sources_are_content_hashed_and_immutable(tmp_path: Path) -> None:
     assert second.name == f"policy--{hashlib.sha256(second_text.encode()).hexdigest()}.md"
     assert first.read_text(encoding="utf-8") == first_text
     assert second.read_text(encoding="utf-8") == second_text
+
+
+def test_reopening_store_does_not_migrate_existing_projection(tmp_path: Path) -> None:
+    memory = tmp_path / "memory"
+    store = MemoryStore(memory)
+    legacy_graph = json.loads(store.graph_path.read_text(encoding="utf-8"))
+    legacy_graph.pop("graph_schema_version")
+    store.graph_path.write_text(
+        json.dumps(legacy_graph, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+    before = {
+        path.relative_to(memory): path.read_bytes()
+        for path in memory.rglob("*")
+        if path.is_file()
+    }
+
+    reopened = MemoryStore(memory)
+
+    after = {
+        path.relative_to(memory): path.read_bytes()
+        for path in memory.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
+    assert not reopened.projection_is_consistent()
+
+    assert reopened.repair_projections()
+    assert reopened.projection_is_consistent()
 
 
 def test_memory_transaction_serializes_across_processes(tmp_path: Path) -> None:
