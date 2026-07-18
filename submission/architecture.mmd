@@ -1,37 +1,45 @@
-flowchart TB
-    J[Judge / Demo Client]
+flowchart LR
+    B["Judge browser<br/>Guided demo UI<br/>source A → correction B → query → explain"]
 
-    subgraph AC["Alibaba Cloud - ECS trial candidate (activation approval required)"]
-        HTTPS[Caddy HTTPS + Basic Auth<br/>request-size and access boundary]
-        API[FastAPI Librarian<br/>exact deployed commit SHA]
-        subgraph MEM[Persistent system disk - /var/lib/librarian/memory]
-            RAW[raw/ immutable sources]
-            WIKI[wiki/ canonical claims]
-            DEC[decisions.jsonl + recovery journals]
-            IDX[index.md + graph.json<br/>derived top-K index]
-        end
-        RUNS[runs.jsonl + deployment manifests]
+    subgraph ECS["Alibaba Cloud ECS"]
+        C["Caddy HTTPS gateway<br/>Basic Auth on demo routes<br/>64 KB request-body cap"]
+        A["FastAPI Librarian<br/>127.0.0.1:8080"]
+        R["Immutable application release<br/>/opt/librarian/current<br/>exact Git commit"]
+        M["Persistent memory<br/>/var/lib/librarian/memory<br/>raw/ content-addressed sources<br/>wiki/ canonical pages + index/graph<br/>decisions.jsonl + claim-revisions.jsonl<br/>runs.jsonl"]
+
+        C --> A
+        R -. "systemd starts / restarts" .-> A
+        A <--> M
     end
 
-    QWEN[Qwen Cloud API<br/>qwen-flash / approved heavy model]
-
-    J -->|HTTPS| HTTPS --> API
-    API -->|bounded calls, tokens, timeout, retry| QWEN
-    API <--> MEM
-    API --> RUNS
-
-    subgraph DELIVERY[Delivery and proof plane]
-        GH[Public GitHub repository]
-        CI[Deterministic CI<br/>no Qwen key]
-        APPROVE[GitHub production approval]
-        LIVE[Capped 2-case live Qwen gate]
-        RELEASE[Immutable /opt/librarian/releases/sha<br/>current symlink + rollback]
-        VERIFY[Health + restart-persistence proof<br/>Workbench evidence]
-        HOLDOUT[Independent private 24-case holdout<br/>public attestation only]
+    subgraph QC["Qwen Cloud boundary"]
+        Q["DashScope OpenAI-compatible API<br/>qwen-flash<br/>qwen-plus-2025-07-28"]
     end
 
-    GH --> CI --> APPROVE --> LIVE --> RELEASE --> VERIFY --> HOLDOUT
-    RELEASE -. deploys exact SHA .-> API
+    subgraph P["Release evidence"]
+        G["Public GitHub repository<br/>GitHub Actions exact-SHA deployment"]
+        H["Exact-SHA health proof<br/>deployed_sha = candidate_sha"]
+        X["Restart-persistence receipt<br/>memory SHA-256 before = after"]
 
-    classDef pending stroke-dasharray: 5 5
-    class APPROVE,LIVE,RELEASE,VERIFY,HOLDOUT pending
+        G --> H --> X
+    end
+
+    B -->|HTTPS| C
+    A <-->|bounded ingest / query requests| Q
+    G -. "deploys exact commit" .-> R
+    H -. "binds runtime" .-> A
+    X -. "verifies persistence" .-> M
+
+    classDef client fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef gateway fill:#fef3c7,stroke:#b45309,color:#78350f
+    classDef service fill:#ede9fe,stroke:#6d28d9,color:#4c1d95
+    classDef storage fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef cloud fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef proof fill:#f3f4f6,stroke:#4b5563,color:#111827
+
+    class B client
+    class C gateway
+    class A,R service
+    class M storage
+    class Q cloud
+    class G,H,X proof

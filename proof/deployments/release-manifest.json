@@ -1,35 +1,35 @@
 {
-  "archive_sha256": "16d4e75bde163364e2feb8ac5787eaf5bbd0701f9217c19bae5fe6794acfba51",
-  "candidate_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
-  "completed_at": "2026-07-15T12:52:07.238712+00:00",
-  "event_id": "20260715T125202Z-5dee1dbae5e3",
+  "archive_sha256": "e46ba2fdd9632127d7c2276ec1ba1129dae878c1b57983c9c095e47409ad9692",
+  "candidate_sha": "d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
+  "completed_at": "2026-07-18T10:20:56.641501+00:00",
+  "event_id": "20260718T102051Z-d5ca972b7468",
   "event_type": "deploy",
   "failure": null,
   "health": {
-    "response_sha256": "f0dab8e0b3cec5a61a1d55f0803ed6e2c1fc18f203cdc2bbf77cd65e347dc47e",
+    "response_sha256": "3eb7a0feed2c105ce93d1e30c965459d11743675b7f72e4b799b12c1c6ed4249",
     "status": "PASS",
     "url": "http://127.0.0.1:8080/health"
   },
-  "manifest_path": "/var/lib/librarian/deployments/20260715T125202Z-5dee1dbae5e3.json",
+  "manifest_path": "/var/lib/librarian/deployments/20260718T102051Z-d5ca972b7468.json",
   "memory_integrity": {
-    "after_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
-    "before_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
+    "after_sha256": "e3d5c7e9c7f7d18f1bd931fd5ac043f66917a01c87daa1ac2bbce57ce27df3f2",
+    "before_sha256": "e3d5c7e9c7f7d18f1bd931fd5ac043f66917a01c87daa1ac2bbce57ce27df3f2",
     "bootstrap_applied": false,
-    "pre_candidate_sha256": "ca7f8b45297946ba9a608d6c580fc93ab3b52888a11a92ca44a96eceee86a974",
+    "pre_candidate_sha256": "e3d5c7e9c7f7d18f1bd931fd5ac043f66917a01c87daa1ac2bbce57ce27df3f2",
     "status": "PASS"
   },
   "memory_path": "/var/lib/librarian/memory",
-  "previous_sha": "f7dc8458eb92ac77cc0eb3ca7b1f212af874e3e4",
+  "previous_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
   "release_gate_receipt": {
-    "path": "/var/lib/librarian/deployments/20260715T125202Z-5dee1dbae5e3.release-gate.json",
-    "sha256": "cc4e2b0c9d67bb19c7fbbd5c073e633696886a4d987880c24ed76022a44c6ff6"
+    "path": "/var/lib/librarian/deployments/20260718T102051Z-d5ca972b7468.release-gate.json",
+    "sha256": "ac0f2214fedf803a4063d5cdac33078cf44a7acb868e5b17efdc50607cd8a1ba"
   },
-  "release_path": "/opt/librarian/releases/5dee1dbae5e350c4b2a1466f0002596168bbe15e",
+  "release_path": "/opt/librarian/releases/d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
   "restart_persistence_proof": {
     "receipt_path": null,
     "status": "PENDING_WAVE_5"
   },
   "schema_version": "librarian-release-event/v1",
-  "started_at": "2026-07-15T12:52:02Z",
+  "started_at": "2026-07-18T10:20:51Z",
   "status": "DEPLOYED"
 }

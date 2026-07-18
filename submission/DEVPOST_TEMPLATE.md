@@ -1,138 +1,148 @@
-# Devpost Submission Draft — Track 1 MemoryAgent
+# Devpost final submission source — Track 1 MemoryAgent
 
-This is an English drafting surface, not a release receipt. Official field
-requirements come only from
-[`hackathon-contract.json`](hackathon-contract.json), and every URL, upload, or
-claim used at submission must be `verified` in
-[`evidence-manifest.json`](evidence-manifest.json). Do not copy this draft into
-Devpost while `scripts/preflight.ps1 -Mode submit` fails.
+Live project: https://devpost.com/software/librarian-evidence-backed-agent-memory
+
+This file is the durable source for the editable Devpost project. Official field
+requirements remain canonical in [`hackathon-contract.json`](hackathon-contract.json),
+and proof status remains canonical in
+[`evidence-manifest.json`](evidence-manifest.json).
 
 ## Project title
 
-Librarian — Persistent Memory That Safely Forgets
+Librarian — Evidence-Backed Agent Memory
 
 ## Elevator pitch
 
-Librarian is a Qwen-powered memory agent that maintains a persistent,
-evidence-grounded knowledge base. It preserves immutable source records,
-supersedes stale claims instead of silently deleting them, retrieves only a
-limited top-K context, and restores the same active memory state after a
-process restart.
+A Qwen-powered MemoryAgent that preserves sources, supersedes stale claims, and
+explains why memory changed.
+
+## Inspiration
+
+AI agents often remember a fact after it stops being true. A larger context
+window does not tell a user which source replaced that fact, why the answer
+changed, or whether the older evidence was preserved. Librarian treats memory
+as an evidence lifecycle instead of a bag of text.
 
 ## What it does
 
-- Ingests source text into immutable raw records and evidence-grounded claims.
-- Tracks claim lifecycle transitions so a newer explicit replacement can
-  supersede an older value without deleting its audit trail.
-- Retrieves active claims through a graph-first, top-K path and returns source
-  citations.
-- Persists decisions, wiki state, graph data, and indexes outside the
-  application release directory.
-- Exposes process health without calling Qwen and keeps any paid live-provider
-  check bounded and release-gated.
+Librarian is a **MemoryAgent powered by Qwen Cloud** and deployed on
+**Alibaba Cloud ECS**.
 
-## Track 1 thesis
+A user can:
 
-Under the same update stream, answer model, answer prompt, top-K, and context
-budget, Librarian must cite current facts more accurately than a strong
-latest-write-wins baseline, reduce both stale leakage and false forgetting,
-and restore the same active memory state after process restart.
+1. ingest an original source,
+2. ingest a correction that explicitly replaces it,
+3. query the current memory with bounded retrieval, and
+4. inspect an explanation showing the active claim, superseded claim, source
+   citations, and transition history.
 
-This thesis is not considered proven by documentation, structure checks, or a
-deployment screenshot. Promotion requires deterministic behavior, a bounded
-live Qwen contract, restart persistence on Alibaba Cloud, and an independently
-sealed private holdout for the exact deployed candidate.
+The guided demo uses an isolated namespace for each run. Sources remain
+immutable while claim state changes explicitly, so the system can answer with
+the current value without erasing how that value changed.
 
 ## How we built it
 
-- Qwen Cloud through the DashScope OpenAI-compatible endpoint.
-- FastAPI for the service API.
-- Markdown, JSON, and JSONL memory artifacts with atomic replacement,
-  filesystem synchronization, process locking, and recovery.
-- Immutable application releases separated from persistent memory.
-- Deterministic CI followed by a manually approved live-Qwen and Alibaba Cloud
-  release gate.
+- Qwen Cloud models through the DashScope OpenAI-compatible API
+- FastAPI application on Alibaba Cloud ECS
+- Caddy HTTPS gateway with Basic Auth and a 64 KB request-body limit
+- persistent Markdown, JSON, and JSONL memory outside immutable application releases
+- graph-first bounded retrieval
+- systemd services and exact-commit GitHub Actions deployment
+- candidate-bound health and restart-persistence receipts
 
-## Deployment and evidence fields
+Only bounded ingest and query requests cross the Qwen boundary. The explanation
+view is reconstructed locally from the stored ledger and does not make another
+model call.
 
-Resolve these fields from `submission/evidence-manifest.json` only after their
-status is `verified`:
+## Challenges
 
-| Devpost field | Evidence manifest item |
-|---|---|
-| Track selection | `selected_track_receipt` |
-| Public repository URL | `public_repository` |
-| Alibaba Cloud proof code URL | `alibaba_code_proof` |
-| Architecture diagram upload | `architecture_diagram` |
-| Workbench deployment screenshot | `workbench_deployment_screenshot` |
-| Free judge-access URL | `public_demo_url` |
-| Public video under three minutes | `public_demo_video` |
-| English project description | `english_description` |
-| English-language review | `english_language_review` |
-| New/existing project answer | `existing_project_update` |
-| Testing instructions | `testing_instructions` |
-| AI tools used | `ai_tools_disclosure` |
-| Learning summary | `learning_summary` |
-| Eligibility confirmations | `eligibility_confirmations` |
+The hardest part was making “memory changed” auditable. We had to preserve
+source bytes, represent supersession rather than overwrite history, keep
+retrieval bounded, and prove that deployment and restart did not silently alter
+persistent memory. The deployment pipeline fails closed when the candidate SHA,
+live health, or memory digest does not match.
 
-The live URL, bounded Qwen receipt, masked Alibaba infrastructure receipt,
-exact-SHA deployment manifest, restart proof, and finalization receipt are now
-verified in the evidence manifest. The video, architecture refresh, Workbench
-screenshot, form receipts, and human confirmations remain incomplete.
+## Accomplishments
 
-## New or existing project
+- a working browser-guided correction demo
+- live Qwen Cloud calls with model and token receipts
+- source-backed answers with explicit claim IDs
+- visible active and superseded memory states
+- exact-SHA deployment on Alibaba Cloud ECS
+- restart-persistence proof bound to the deployed candidate
 
-Pending human confirmation. Repository history alone does not establish
-whether the underlying project existed before 2026-05-26. Before submission,
-the owner must confirm the project's provenance in the current form and, if it
-is an existing project, provide an accurate English summary of meaningful
-changes made after 2026-05-26.
+## What we learned
 
-## Judge testing instructions draft
+Useful agent memory needs more than storage. It needs evidence, state
+transitions, bounded recall, and recovery proof. We also learned to keep the
+Qwen transmission boundary small and to separate model-assisted ingest and
+query from deterministic explanation and deployment verification.
 
-Use the Basic Auth username and password supplied privately in the Devpost
-testing field; credentials are intentionally absent from the public repository.
-Then:
+## What's next
 
-1. Open `https://43.106.13.57.sslip.io` and authenticate.
-2. `POST /ingest` with
-   `{"source_id":"judge-source-a","text":"In judge-demo, librarian's production-quota is 100 units per minute."}`.
-3. `POST /ingest` with
-   `{"source_id":"judge-source-b","text":"This record explicitly replaces judge-source-a. In judge-demo, librarian's production-quota is 1000 units per minute."}`.
-4. `POST /query` with
-   `{"question":"What is librarian's current production-quota in judge-demo?","top_k":3}`.
-5. Verify the answer selects `1000`, cites `judge-source-b`, and does not place
-   standalone `100` in the answer or selected facts.
-6. Inspect `proof/deployments/restart-persistence.json` and
-   `proof/deployments/release-finalization.json`; both bind runtime commit
-   `5dee1dbae5e350c4b2a1466f0002596168bbe15e` and matching memory digests.
+Next we would add user-managed retention policies, encrypted tenant isolation,
+and broader evaluation across real correction-heavy workflows while preserving
+the same evidence-first contract.
 
-The endpoint and request bodies are verified. The repository must never contain
-the Basic Auth secret; copy it only into the judge-visible testing field before
-submission.
+## Built with
 
-## AI tools disclosure draft
+Qwen Cloud, Alibaba Cloud ECS, DashScope, qwen-flash,
+qwen-plus-2025-07-28, Python, FastAPI, Caddy, systemd, GitHub Actions,
+MCP, Markdown, JSON, and JSONL.
+
+## Public links
+
+- Repository: https://github.com/procloudkim/2026-Global-AI-Hackathon-Series-with-Qwen-Cloud
+- Live demo: https://43.106.13.57.sslip.io
+- Qwen integration proof:
+  https://github.com/procloudkim/2026-Global-AI-Hackathon-Series-with-Qwen-Cloud/blob/main/src/librarian/llm.py
+
+## Judge testing instructions
+
+Use the Basic Auth credentials supplied privately in the Devpost judge
+instructions. Credentials are intentionally absent from the public repository.
+
+1. Open the live demo and authenticate.
+2. Keep the generated isolated demo namespace.
+3. Ingest Source A with quota `100`.
+4. Load and ingest Source B, which explicitly replaces Source A with quota
+   `1000`.
+5. Query memory and verify that the answer is `1000`, cites Source B, and does
+   not include standalone stale value `100`.
+6. Open **Explain memory** and verify that `1000` is active, `100` is
+   superseded, and the replacement transition is preserved.
+7. Inspect `proof/deployments/restart-persistence.json` and
+   `proof/deployments/release-finalization.json`; both bind deployed runtime
+   commit `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`.
+
+## AI tools disclosure
 
 Qwen Cloud models power runtime extraction and answering. OpenAI Codex assisted
-software engineering, repository auditing, test design, and release planning.
-The final disclosure must be reviewed by a human against the complete tool
-history before submission.
+software engineering, repository auditing, test design, security review,
+deployment verification, and submission preparation.
 
-## Learning summary draft
+## Required custom-field values
 
-The central lesson was that persistent memory is a lifecycle and release
-contract, not a retrieval feature. Evidence spans must bind every claim to the
-source text; explicit replacements must supersede stale values without erasing
-the audit trail; unrelated facts must survive forgetting; and restart must
-restore the same canonical state. We also learned to keep deterministic tests,
-live-provider behavior, deployed persistence, independent holdout promotion,
-and submission completeness as separate proof levels.
+The following values are evidence-backed and ready:
+
+- Track: **MemoryAgent**
+- Public repository: the repository URL above
+- Alibaba deployment proof code: the `src/librarian/llm.py` URL above
+- Architecture upload: `submission/architecture.png`
+- Workbench screenshot upload:
+  `submission/evidence/workbench-deployment.png`
+- AI tools: the disclosure above
+- Learning level: **Significant learning**
+
+Submitter type, country, new or existing project provenance, age of majority,
+eligible jurisdiction, and sponsor or government employment are personal facts
+that require the owner’s explicit confirmation before final submission.
 
 ## Proof boundary
 
-The current candidate has verified live-Qwen, Alibaba deployment,
-restart-persistence, and release-finalization receipts. The live gate is a
-two-case release slice, not an independent private-holdout promotion:
-`promotion_status` remains `HOLD`. Legacy token benchmarks and pre-candidate
-runs are not submission evidence. Only candidate-bound artifacts marked
-`verified` in the evidence manifest may be used in the final submission.
+Deployed candidate `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`
+passed deterministic CI, the bounded two-case live Qwen gate, exact-SHA Alibaba
+deployment, and restart-persistence verification. The live release slice is not
+an independent private-holdout promotion:
+`promotion_status` remains `HOLD`. No winning, comparative-superiority, or
+general production-readiness claim is made.

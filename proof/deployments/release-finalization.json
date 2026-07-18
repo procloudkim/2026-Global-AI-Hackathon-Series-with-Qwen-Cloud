@@ -1,14 +1,14 @@
 {
-  "candidate_sha": "5dee1dbae5e350c4b2a1466f0002596168bbe15e",
-  "created_at": "2026-07-15T13:10:56.283434+00:00",
+  "candidate_sha": "d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
+  "created_at": "2026-07-18T10:21:20.350999+00:00",
   "deployment_manifest": {
-    "path": "/var/lib/librarian/deployments/20260715T125202Z-5dee1dbae5e3.json",
-    "sha256": "b24f3955f0f7b04939756ba75de6422713ca6328bba445b5b0e9e43169ce3dc8",
+    "path": "/var/lib/librarian/deployments/20260718T102051Z-d5ca972b7468.json",
+    "sha256": "bf17faf2a37fa4ee65017b98325026de8c6838d2a50a52806e3d94a8b0415a93",
     "status": "DEPLOYED"
   },
   "restart_persistence_proof": {
-    "path": "/var/lib/librarian/deployments/proofs/release-proof-5dee1dbae5e3-final20260715130054-continuation-e4d6722a4bd3/restart-persistence-receipt.json",
-    "sha256": "f22a363f586c498cd3f8eecd107e2137f124dddbd674856b9287826ffc1f32eb",
+    "path": "/var/lib/librarian/deployments/proofs/release-proof-d5ca972b7468-29640621032-1/restart-persistence-receipt.json",
+    "sha256": "0399c0af75678c497565736fbbcebdb7ff63fd0c3f10fe9934d82500d34fe063",
     "status": "PASS"
   },
   "schema_version": "librarian-release-finalization/v1",

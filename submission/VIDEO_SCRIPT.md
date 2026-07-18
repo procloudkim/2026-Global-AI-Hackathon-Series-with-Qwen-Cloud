@@ -1,98 +1,126 @@
-# Librarian public demo video script (target: 2:45)
+# Librarian demo video script
 
-Do not record this script until the live-Qwen gate, Alibaba restart proof, and
-private promotion attestation all bind to the same candidate SHA. Replace every
-`<EVIDENCE>` marker with the verified receipt value; never narrate a pending gate
-as a pass.
+Target: 2:45–2:55
+Deployed commit: `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`
 
-## 0:00-0:20 - Problem and thesis
+## 0:00–0:18 — Problem
 
-Screen: title, then the English architecture diagram.
+Screen: Title, then the final architecture diagram.
 
 Narration:
 
-> Agents do not only need more memory. They need current memory. Librarian is a
-> Qwen-powered MemoryAgent that keeps immutable source evidence, marks replaced
-> claims stale, and retrieves only the active facts that fit a limited context.
+> AI agents can remember a fact after it stops being true. A larger context
+> window still cannot explain which source replaced it. Librarian is a
+> Qwen-powered MemoryAgent that preserves sources, changes claim state
+> explicitly, and answers from current evidence.
 
-## 0:20-0:45 - Real Alibaba Cloud runtime
+## 0:18–0:36 — Architecture
 
-Screen: Alibaba Cloud Workbench connected to the running instance. Show the
-timestamp, `/health`, and deployed commit SHA without revealing account IDs,
-addresses that should remain private, or secrets.
-
-Narration:
-
-> This FastAPI backend is running on Alibaba Cloud at commit `<EVIDENCE_SHA>`.
-> Its Markdown memory is on a persistent system disk outside the application
-> release, while bounded model calls go to Qwen Cloud.
-
-## 0:45-1:25 - Latest-write replacement with evidence
-
-Screen: ingest the two approved vertical-slice sources and show the structured
-receipts.
-
-1. Source A: `The production API quota is 100.`
-2. Source B: `This replaces the prior production API quota. The production API quota is 1000.`
+Screen: Follow the diagram from the browser to Alibaba Cloud and Qwen Cloud.
 
 Narration:
 
-> Source A establishes a quota of one hundred. Source B explicitly replaces it
-> with one thousand. Qwen extracts claims, but deterministic evidence and
-> lifecycle validators decide whether state may change. The old claim is now
-> superseded, the new claim is active, and unrelated memory remains intact.
+> The browser reaches Caddy over HTTPS and Basic Auth, then FastAPI on Alibaba
+> Cloud ECS. Claims, source files, and append-only decisions live on a persistent
+> system disk. In this demo, only bounded ingest and query calls cross to Qwen
+> Cloud; explanation is a local ledger read.
 
-## 1:25-1:55 - Restart persistence
+## 0:36–0:54 — Live Alibaba backend
 
-Screen: show the pre-restart state hash, restart the service or container in
-Workbench, then show the post-restart state hash and `/health` SHA.
+Screen: Alibaba Cloud console, showing the successful Cloud Assistant remote-command result with sensitive account information hidden:
 
-Narration:
-
-> I restart the application. The release changes independently from the memory
-> directory, so the canonical state and decision history survive. The before
-> and after memory hashes are identical: `<EVIDENCE_MEMORY_HASH>`.
-
-## 1:55-2:20 - Limited-context answer
-
-Screen: query the current production quota. Keep the answer, citation, selected
-context trace, top-K count, and token receipt visible.
+```bash
+date -u '+%Y-%m-%dT%H:%M:%SZ'
+systemctl is-active librarian.service
+systemctl is-active caddy.service
+curl -fsS http://127.0.0.1:8080/health
+readlink -f /opt/librarian/current
+```
 
 Narration:
 
-> The answer is one thousand and cites Source B. The stale value one hundred is
-> absent from both the answer and selected context. Librarian scores its graph
-> first and reads only the top-K pages, shown here as `<EVIDENCE_TOP_K>`.
+> This Alibaba Cloud Assistant result is from the live backend, not a local mock.
+> Librarian and Caddy are both active. Health and the current release path agree
+> on commit d5ca972.
 
-## 2:20-2:35 - Independent evaluation
+## 0:54–1:18 — Source A: original fact
 
-Screen: public holdout attestation only. Do not show private gold or the seed.
-
-Narration:
-
-> Promotion is an AND gate, not a model-graded score. An isolated evaluator ran
-> twenty-four private cases three times against the same candidate SHA. The
-> public attestation records hashes, aggregate metrics, and the final decision:
-> `<EVIDENCE_PROMOTION_DECISION>`.
-
-## 2:35-2:45 - Close
-
-Screen: public repository, MIT license, test URL.
+Screen: Open the live demo. Source A is already loaded with quota `100`. Click
+**Ingest source** and wait for the receipt.
 
 Narration:
 
-> Librarian: persistent memory that remembers the current truth and preserves
-> the evidence for how it changed.
+> The browser creates a unique demo namespace so earlier runs cannot contaminate
+> this result. Source A says the quota is one hundred units per minute. I ingest
+> it. The receipt identifies the stored claim, the Qwen model route, and actual
+> token usage.
 
-## Recording and publication checklist
+## 1:18–1:42 — Source B: explicit replacement
 
-- [ ] Total duration is strictly less than 180 seconds.
-- [ ] English narration or complete English subtitles are present.
-- [ ] Video is publicly accessible without login on an allowed host.
-- [ ] Workbench, public demo, receipts, and repository all show the same SHA.
-- [ ] Alibaba deployment and restart are recorded live, not simulated locally.
-- [ ] Source B citation, top-K trace, token usage, and absence of stale `100` are visible.
-- [ ] No API key, health token, SSH key, account number, coupon code, or private IP is visible.
-- [ ] No private holdout gold, raw seed, or evaluator-only path is visible.
-- [ ] All `<EVIDENCE_...>` markers have been replaced from fresh receipts.
-- [ ] Title, description, repository, diagram, video, and running demo describe the same behavior.
+Screen: Click **Load correction**. Pause over the text showing that it explicitly
+replaces Source A and changes the quota to `1000`. Click **Ingest source**.
+
+Narration:
+
+> Now I load Source B. Notice that it explicitly names Source A as the record it
+> replaces and changes the quota to one thousand. After ingest, the old source
+> remains immutable; the claim lifecycle changes instead of deleting its
+> history.
+
+## 1:42–2:02 — Current answer and citation
+
+Screen: Keep **Maximum pages** at `5`. Click **Query memory**. Show the answer,
+verified fact, Source B citation, claim ID, and token receipt.
+
+Narration:
+
+> The question is scoped to this run, with at most five pages available. Query
+> returns one thousand, cites the stored Source B page and claim ID, and shows
+> token usage. The consistency check confirms that the standalone stale value
+> one hundred is absent from the answer.
+
+## 2:02–2:28 — Explain why memory changed
+
+Screen: Click **Explain memory**. Show `Resolution · resolved`, the active `1000`
+claim, superseded `100` claim, transition, revision history, and passed
+replacement proof.
+
+Narration:
+
+> Explain memory makes no Qwen call. It projects the ledger for the same
+> canonical key: one thousand is active, one hundred is superseded, and the
+> transition links Source B to the old claim. Revision history remains visible,
+> and the replacement proof passes without hiding either version.
+
+## 2:28–2:43 — Persistence receipt
+
+Screen: Open `proof/deployments/restart-persistence.json`. Highlight
+`candidate_sha`, `status: PASS`, and equal `memory_sha256_before_restart` and
+`memory_sha256_after_restart` values.
+
+Narration:
+
+> This deployment receipt is bound to the same candidate SHA, reports PASS, and
+> records identical memory digests before and after restart. I am showing the
+> existing receipt, not restarting the service during this demo.
+
+## 2:43–2:55 — Public deliverable
+
+Screen: Public GitHub repository root, `LICENSE`, then README references to Qwen
+Cloud and Alibaba Cloud.
+
+Narration:
+
+> The code is public under MIT. The repository documents its Qwen Cloud
+> integration and Alibaba Cloud deployment. Librarian remembers the current
+> truth and preserves the evidence for how it changed.
+
+## Recording checks
+
+- [ ] Keep the finished video under three minutes.
+- [ ] Use English narration or complete English subtitles.
+- [ ] Show Workbench branding, both active services, `/health`, and the release path.
+- [ ] Use only the new receipt bound to `d5ca972`.
+- [ ] Do not expose credentials, account identifiers, tokens, private IPs, or shell history.
+- [ ] Do not mention private holdouts, independent promotion, or simulated evaluation.
+- [ ] Publish on YouTube or Vimeo so it plays without login.
