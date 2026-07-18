@@ -357,7 +357,7 @@ def _unresolved_conflict(seed: str, variant: int, _: int):
     e1 = b.add_event(index=1, text=f"In {scope}, {subject}'s {predicate} is {a}.", claims=[_claim(scope, subject, predicate, a)])
     s1 = b.source(e1)
     b.add_checkpoint(label="initial", after_event=e1, as_of=b.base + timedelta(days=1), scope=scope, subject=subject, predicate=predicate, expected_facts=[_fact(key, a, s1)], forbidden_facts=[], expected_states=[_state(key, a, "active", s1)], protected_facts=[_state(key, a, "active", s1)], required_retrieval_sources=[s1])
-    e2 = b.add_event(index=2, text=f"Independent conflicting record, with no replacement authority: in {scope}, {subject}'s {predicate} is {c}.", claims=[_claim(scope, subject, predicate, c)])
+    e2 = b.add_event(index=2, text=f"Independent conflicting record with no replacement authority. In {scope}, {subject}'s {predicate} is {c}.", claims=[_claim(scope, subject, predicate, c)])
     s2 = b.source(e2)
     states = [_state(key, a, "disputed", s1), _state(key, c, "disputed", s2)]
     forbidden = [_forbidden(key, a), _forbidden(key, c)]

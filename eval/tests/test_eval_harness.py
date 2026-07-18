@@ -107,6 +107,15 @@ class HarnessTests(unittest.TestCase):
                 for claim in event["claims"]
             )
         )
+        conflict_sources = [
+            event["text"]
+            for case in first[0]
+            for event in case["events"]
+            if "Independent conflicting record" in event["text"]
+        ]
+        self.assertTrue(conflict_sources)
+        self.assertTrue(all(". In " in source for source in conflict_sources))
+        self.assertTrue(all(": in " not in source for source in conflict_sources))
 
     def test_seed_commitment_does_not_expose_seed(self) -> None:
         seed = "high-entropy-private-seed-1234"
