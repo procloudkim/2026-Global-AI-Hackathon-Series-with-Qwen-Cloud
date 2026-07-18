@@ -15,6 +15,8 @@ from .config import (
     get_qwen_health_token,
     get_rate_limit_per_minute,
 )
+from .demo_ui import render_demo_home
+from .explain import InvalidMemoryExplainRequest, explain_memory
 from .forget import run_lint
 from .ingest import ingest_source
 from .llm import Tier, get_router
@@ -78,6 +80,9 @@ class IngestRequest(BaseModel):
 class QueryRequest(BaseModel):
     question: str
     top_k: int = Field(default=3, ge=1, le=10)
+    as_of: str | None = None
+    valid_at: str | None = None
+    known_at: str | None = None
 
 
 class LintRequest(BaseModel):
@@ -95,73 +100,31 @@ def health() -> dict:
 
 @app.get("/", response_class=HTMLResponse)
 def home() -> str:
-    return """
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Librarian Demo</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 24px; max-width: 1000px; }
-    textarea, input { width: 100%; margin: 6px 0; }
-    textarea { min-height: 90px; }
-    button { margin: 6px 0 16px; padding: 6px 12px; }
-    pre { background: #f5f5f5; padding: 10px; white-space: pre-wrap; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  </style>
-</head>
-<body>
-  <h1>Librarian (Track 1 MemoryAgent)</h1>
-  <p>Minimal demo UI for ingest/query/lint/stats.</p>
-  <div class="row">
-    <div>
-      <h3>Ingest</h3>
-      <input id="source_id" placeholder="source-id" />
-      <textarea id="ingest_text" placeholder="source text"></textarea>
-      <button onclick="doIngest()">POST /ingest</button>
-    </div>
-    <div>
-      <h3>Query</h3>
-      <textarea id="question" placeholder="question"></textarea>
-      <button onclick="doQuery()">POST /query</button>
-      <h3>Lint</h3>
-      <button onclick="doLint()">POST /lint</button>
-      <h3>Stats</h3>
-      <button onclick="doStats()">GET /stats</button>
-    </div>
-  </div>
-  <h3>Result</h3>
-  <pre id="out">{}</pre>
-  <script>
-    const out = document.getElementById("out");
-    async function call(url, method="GET", body=null) {
-      const res = await fetch(url, {
-        method,
-        headers: {"Content-Type":"application/json"},
-        body: body ? JSON.stringify(body) : null
-      });
-      const txt = await res.text();
-      try { out.textContent = JSON.stringify(JSON.parse(txt), null, 2); }
-      catch { out.textContent = txt; }
-    }
-    function doIngest() {
-      call("/ingest", "POST", {
-        source_id: document.getElementById("source_id").value,
-        text: document.getElementById("ingest_text").value
-      });
-    }
-    function doQuery() {
-      call("/query", "POST", {
-        question: document.getElementById("question").value,
-        top_k: 5
-      });
-    }
-    function doLint() { call("/lint", "POST", {apply_archive:false}); }
-    function doStats() { call("/stats"); }
-  </script>
-</body>
-</html>
-"""
+    return render_demo_home()
+
+
+@app.get("/memory/explain")
+def memory_explain(
+    key: str,
+    as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
+) -> dict:
+    try:
+        return explain_memory(
+            store=store,
+            key=key,
+            as_of=as_of,
+            valid_at=valid_at,
+            known_at=known_at,
+        )
+    except InvalidMemoryExplainRequest as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"memory integrity check failed: {exc}",
+        ) from exc
 
 
 @app.post("/ingest")
@@ -233,6 +196,12 @@ def ingest(payload: IngestRequest) -> dict:
         },
         "prompt_version": result.prompt_version,
         "route_tier": result.route_tier,
+        "model": result.model,
+        "tokens": {
+            "prompt": result.prompt_tokens,
+            "completion": result.completion_tokens,
+            "total": result.total_tokens,
+        },
         "claim_ids": result.claim_ids,
         "transitions": result.transition_events,
         "trace": result.trace,
@@ -251,6 +220,7 @@ def stats() -> dict:
             "log_exists": store.log_path.exists(),
             "decisions_exists": store.decisions_path.exists(),
             "projection_consistent": store.projection_is_consistent(),
+            "claim_history": store.claim_revision_diagnostics(),
         },
     }
 
@@ -264,6 +234,9 @@ def query(payload: QueryRequest) -> dict:
             store=store,
             router=get_router(),
             top_k=payload.top_k,
+            as_of=payload.as_of,
+            valid_at=payload.valid_at,
+            known_at=payload.known_at,
         )
         latency_ms = int((perf_counter() - started) * 1000)
         ledger.append(

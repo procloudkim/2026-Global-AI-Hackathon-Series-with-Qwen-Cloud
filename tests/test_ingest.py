@@ -678,6 +678,13 @@ def test_future_restore_stays_scheduled_until_effective_time(tmp_path: Path) -> 
     after = [Claim.from_dict(item) for item in store.claims_for_page("api-policy")]
     assert next(claim for claim in after if claim.claim_id == current.claim_id).status is ClaimStatus.SUPERSEDED
     assert next(claim for claim in after if claim.claim_id == future.claim_id).status is ClaimStatus.ACTIVE
+    due_revision = next(
+        row
+        for row in reversed(store.claim_revisions())
+        if row["claim_id"] == current.claim_id
+        and row["reason"] == "effective_time_reached"
+    )
+    assert due_revision["recorded_at"] == "2026-08-02T00:00:00Z"
 
 
 def test_identical_source_bytes_keep_evidence_for_each_source(tmp_path: Path) -> None:

@@ -229,6 +229,12 @@ def test_pending_transition_recovers_page_write_without_ledger_event(
     assert store.recover_pending_transition() is True
     assert not store.pending_transition_path.exists()
     assert [event["event_id"] for event in store.decision_events()] == ["event-crash"]
+    revisions = store.claim_revisions()
+    assert [row["ordinal"] for row in revisions] == [1, 2]
+    assert [row["claim"]["status"] for row in revisions] == [
+        "active",
+        "superseded",
+    ]
 
 
 def test_pending_ingest_recovery_restores_prior_state_then_disputes_conflict(
@@ -352,6 +358,304 @@ def test_write_page_claims_rejects_invalid_canonical_claim(tmp_path: Path) -> No
 
     persisted = Claim.from_dict(store.claims_for_page(page.slug)[0])
     assert persisted == claim
+
+
+def test_claim_revision_chain_captures_creation_and_lifecycle_update(
+    tmp_path: Path,
+) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    target_slug = store.slug_for("API Policy")
+    store.stage_ingest_operation(
+        source_id="source-a",
+        source_hash=hashlib.sha256(b"source-a").hexdigest(),
+        observed_at=claim.observed_at,
+        target_slug=target_slug,
+        affected_keys=[claim.key],
+        incoming_claim_ids=[claim.claim_id],
+        prior_claims=[],
+    )
+    page = store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        metadata={"summary": "quota", "claims": [claim.to_dict()]},
+    )
+    store.complete_ingest_operation()
+
+    transition = _transition(
+        claim=claim,
+        page_slug=page.slug,
+        from_status=ClaimStatus.ACTIVE,
+        to_status=ClaimStatus.SUPERSEDED,
+        event_id="revision-transition",
+        rationale="A later source replaced this claim.",
+    )
+    store.apply_claim_transition(
+        page_slug=page.slug,
+        claim_id=claim.claim_id,
+        to_status=ClaimStatus.SUPERSEDED,
+        event=transition,
+        recorded_at="2026-07-15T00:00:00Z",
+    )
+
+    revisions = store.claim_revisions()
+    assert [row["ordinal"] for row in revisions] == [1, 2]
+    assert [row["change_kind"] for row in revisions] == ["creation", "update"]
+    assert revisions[0]["previous_revision_id"] is None
+    assert revisions[1]["previous_revision_id"] == revisions[0]["revision_id"]
+    assert revisions[0]["claim"]["status"] == "active"
+    assert revisions[1]["claim"]["status"] == "superseded"
+    assert revisions[1]["recorded_at"] == "2026-07-15T00:00:00Z"
+
+    diagnostics = store.claim_revision_diagnostics()
+    assert diagnostics == {
+        "schema_version": "librarian-claim-revision/v1",
+        "ledger_exists": True,
+        "revision_count": 2,
+        "tracked_claim_count": 1,
+        "current_claim_count": 1,
+        "untracked_current_claim_count": 0,
+        "baseline_revision_count": 0,
+        "earliest_recorded_at": "2026-07-14T00:00:00Z",
+        "latest_recorded_at": "2026-07-15T00:00:00Z",
+        "pending_receipt_exists": False,
+    }
+
+
+def test_claim_deletion_is_rejected_in_favor_of_archive_transition(
+    tmp_path: Path,
+) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    page = store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        metadata={"claims": [claim.to_dict()]},
+    )
+
+    with pytest.raises(ValueError, match="transition claims to archived"):
+        store.write_page_claims(page.slug, [])
+
+    assert store.claims_for_page(page.slug) == [claim.to_dict()]
+
+
+def test_claim_revision_context_rejects_blank_identity(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+
+    with pytest.raises(ValueError, match="must be non-empty"):
+        store.upsert_wiki_page(
+            "API Policy",
+            "Policy facts.",
+            metadata={"claims": [claim.to_dict()]},
+            revision_recorded_at=claim.observed_at,
+            revision_operation_id=" ",
+            revision_reason="creation",
+        )
+
+    assert store.list_wiki_pages() == []
+
+
+def test_pending_claim_revision_recovers_page_write_exactly_once(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    target_slug = store.slug_for("API Policy")
+    store.stage_ingest_operation(
+        source_id="source-a",
+        source_hash=hashlib.sha256(b"source-a").hexdigest(),
+        observed_at=claim.observed_at,
+        target_slug=target_slug,
+        affected_keys=[claim.key],
+        incoming_claim_ids=[claim.claim_id],
+        prior_claims=[],
+    )
+
+    def fail_append(_revision):
+        raise RuntimeError("simulated revision append crash")
+
+    monkeypatch.setattr(store, "_append_claim_revision", fail_append)
+    with pytest.raises(RuntimeError, match="simulated revision append crash"):
+        store.upsert_wiki_page(
+            "API Policy",
+            "Policy facts.",
+            metadata={"summary": "quota", "claims": [claim.to_dict()]},
+        )
+
+    assert store.claims_for_page(target_slug)[0]["claim_id"] == claim.claim_id
+    assert store.pending_claim_revisions_path.exists()
+    restarted = MemoryStore(store.base)
+    assert restarted.recover_pending_claim_revisions() is True
+    assert not restarted.pending_claim_revisions_path.exists()
+    assert len(restarted.claim_revisions()) == 1
+    assert restarted.recover_pending_claim_revisions() is False
+    assert len(restarted.claim_revisions()) == 1
+
+
+def test_new_mutation_recovers_pending_revision_before_staging(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    first = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    second = canonical_claim(
+        value="eu-central-1",
+        source_id="source-b",
+        evidence_span="The region is eu-central-1.",
+        observed_at="2026-07-15T00:00:00Z",
+        predicate="region",
+    )
+    original_append = store._append_claim_revision
+
+    def fail_append(_revision):
+        raise RuntimeError("simulated revision append crash")
+
+    monkeypatch.setattr(store, "_append_claim_revision", fail_append)
+    with pytest.raises(RuntimeError, match="simulated revision append crash"):
+        store.upsert_wiki_page(
+            "API Policy",
+            "Policy facts.",
+            slug="api-policy",
+            metadata={"claims": [first.to_dict()]},
+            revision_recorded_at=first.observed_at,
+            revision_operation_id="create-first",
+            revision_reason="first creation",
+        )
+    assert store.pending_claim_revisions_path.exists()
+
+    monkeypatch.setattr(store, "_append_claim_revision", original_append)
+    store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        slug="api-policy",
+        metadata={"claims": [first.to_dict(), second.to_dict()]},
+        revision_recorded_at=second.observed_at,
+        revision_operation_id="create-second",
+        revision_reason="second creation",
+    )
+
+    revisions = store.claim_revisions()
+    assert [row["claim_id"] for row in revisions] == [
+        first.claim_id,
+        second.claim_id,
+    ]
+    assert [row["ordinal"] for row in revisions] == [1, 2]
+    assert not store.pending_claim_revisions_path.exists()
+
+
+def test_tracked_claim_mutation_requires_revision_context(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    page = store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        metadata={"claims": [claim.to_dict()]},
+        revision_recorded_at=claim.observed_at,
+        revision_operation_id="create-claim",
+        revision_reason="claim creation",
+    )
+    disputed = Claim.from_dict({**claim.to_dict(), "status": "disputed"})
+
+    with pytest.raises(ValueError, match="requires complete revision context"):
+        store.write_page_claims(page.slug, [disputed])
+
+    assert Claim.from_dict(store.claims_for_page(page.slug)[0]) == claim
+    assert len(store.claim_revisions()) == 1
+
+
+def test_claim_revision_recorded_at_cannot_move_backwards(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-15T00:00:00Z",
+    )
+    page = store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        metadata={"claims": [claim.to_dict()]},
+        revision_recorded_at=claim.observed_at,
+        revision_operation_id="create-claim",
+        revision_reason="claim creation",
+    )
+    disputed = Claim.from_dict({**claim.to_dict(), "status": "disputed"})
+
+    with pytest.raises(ValueError, match="cannot precede"):
+        store.write_page_claims(
+            page.slug,
+            [disputed],
+            revision_recorded_at="2026-07-14T00:00:00Z",
+            revision_operation_id="backdated-update",
+            revision_reason="invalid backdated update",
+        )
+
+    assert Claim.from_dict(store.claims_for_page(page.slug)[0]) == claim
+    assert len(store.claim_revisions()) == 1
+
+
+def test_claim_revision_ledger_repairs_only_truncated_tail(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path / "memory")
+    claim = canonical_claim(
+        value="100",
+        source_id="source-a",
+        evidence_span="The quota is 100.",
+        observed_at="2026-07-14T00:00:00Z",
+    )
+    store.stage_ingest_operation(
+        source_id="source-a",
+        source_hash=hashlib.sha256(b"source-a").hexdigest(),
+        observed_at=claim.observed_at,
+        target_slug="api-policy",
+        affected_keys=[claim.key],
+        incoming_claim_ids=[claim.claim_id],
+        prior_claims=[],
+    )
+    store.upsert_wiki_page(
+        "API Policy",
+        "Policy facts.",
+        slug="api-policy",
+        metadata={"claims": [claim.to_dict()]},
+    )
+    store.complete_ingest_operation()
+    with store.claim_revisions_path.open("ab") as handle:
+        handle.write(b'{"truncated":')
+
+    assert store.repair_partial_claim_revision_tail() is True
+    assert len(store.claim_revisions()) == 1
+    assert store.claim_revisions_path.read_bytes().endswith(b"\n")
 
 
 def test_equivalent_utc_timestamps_produce_one_claim_id() -> None:

@@ -93,6 +93,44 @@ def _run_lint_locked(
     heavy_calls = 0
     repair_timestamp = canonical_timestamp(datetime.now(UTC).isoformat())
 
+    claim_revision_tail_repaired = (
+        store.repair_partial_claim_revision_tail() if apply_archive else False
+    )
+    if not apply_archive:
+        store.claim_revisions()
+    if claim_revision_tail_repaired:
+        findings.append(
+            LintFinding(
+                finding_type="claim_revision_ledger_partial_tail",
+                page=store.claim_revisions_path.name,
+                message=(
+                    "Repaired the final claim-revision JSONL boundary or "
+                    "truncated fragment."
+                ),
+                repaired=True,
+            )
+        )
+
+    pending_claim_revisions_found = store.pending_claim_revisions_path.exists()
+    pending_claim_revisions_recovered = (
+        store.recover_pending_claim_revisions()
+        if apply_archive and pending_claim_revisions_found
+        else False
+    )
+    if pending_claim_revisions_found:
+        findings.append(
+            LintFinding(
+                finding_type="pending_claim_revisions",
+                page=store.pending_claim_revisions_path.name,
+                message=(
+                    "Completed the crash-interrupted page/revision boundary."
+                    if pending_claim_revisions_recovered
+                    else "Crash-interrupted claim revisions require repair mode."
+                ),
+                repaired=pending_claim_revisions_recovered,
+            )
+        )
+
     ledger_tail_repaired = (
         store.repair_partial_decision_tail()
         if apply_archive
@@ -375,6 +413,7 @@ def _run_lint_locked(
                     for _, claim in group
                     if claim.claim_id != winner.claim_id
                 ],
+                recorded_at=repair_timestamp,
             )
             winner_event = _event(
                 page_slug=winner_slug,
@@ -559,6 +598,8 @@ def _add_supersedes(
     page_slug: str,
     winner: Claim,
     loser_ids: list[str],
+    *,
+    recorded_at: str,
 ) -> Claim:
     updated = Claim.from_dict(
         {
@@ -570,7 +611,24 @@ def _add_supersedes(
     for index, raw in enumerate(claims):
         if str(raw.get("claim_id", "")) == winner.claim_id:
             claims[index] = updated.to_dict()
-            store.write_page_claims(page_slug, claims)
+            operation_id = hashlib.sha256(
+                "|".join(
+                    (
+                        "lint_add_supersedes",
+                        page_slug,
+                        winner.claim_id,
+                        recorded_at,
+                        ",".join(sorted(set(loser_ids))),
+                    )
+                ).encode("utf-8")
+            ).hexdigest()[:24]
+            store.write_page_claims(
+                page_slug,
+                claims,
+                revision_recorded_at=recorded_at,
+                revision_operation_id=operation_id,
+                revision_reason="lint validated supersession relation",
+            )
             return updated
     raise KeyError(f"claim not found on page {page_slug}: {winner.claim_id}")
 

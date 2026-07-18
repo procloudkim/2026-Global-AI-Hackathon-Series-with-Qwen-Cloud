@@ -101,6 +101,8 @@ def _ingest_source_locked(
     observed_at: str | None = None,
 ) -> IngestResult:
     """Extract source-grounded claims and reconcile only affected claim keys."""
+    claim_revision_tail_repaired = store.repair_partial_claim_revision_tail()
+    pending_claim_revisions_recovered = store.recover_pending_claim_revisions()
     pending_transition_recovered = store.recover_pending_transition()
     recovered_ingest_keys = store.recover_pending_ingest(
         prompt_version=PROMPT_VERSION,
@@ -646,6 +648,10 @@ def _ingest_source_locked(
             "lifecycle_transitions": len(transition_events),
             "heavy_arbitrations": heavy_calls,
             "invalid_existing_claims": invalid_existing_claims,
+            "claim_revision_tail_repaired": int(claim_revision_tail_repaired),
+            "pending_claim_revisions_recovered": int(
+                pending_claim_revisions_recovered
+            ),
             "pending_transition_recovered": int(pending_transition_recovered),
             "pending_ingest_keys_recovered": len(recovered_ingest_keys),
             "projection_recovery_applied": int(projection_recovery_applied),

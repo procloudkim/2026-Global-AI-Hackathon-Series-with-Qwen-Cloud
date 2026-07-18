@@ -7,7 +7,13 @@ import json
 import re
 from typing import Any, Protocol
 
-from .claims import Claim, ClaimStatus, canonical_timestamp, normalize_component
+from .claims import (
+    Claim,
+    ClaimStatus,
+    TransitionEvent,
+    canonical_timestamp,
+    normalize_component,
+)
 from .llm import Tier
 from .prompts import QUERY_HEAVY_SYSTEM_PREFIX, QUERY_LIGHT_SYSTEM_PREFIX, PROMPT_VERSION
 from .store import MemoryStore, WikiPage
@@ -68,6 +74,8 @@ def answer_question(
     top_k: int = 3,
     confidence_threshold: float = 0.3,
     as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
     context_budget_chars: int = 12000,
 ) -> QueryResult:
     with store.transaction():
@@ -78,6 +86,8 @@ def answer_question(
             top_k=top_k,
             confidence_threshold=confidence_threshold,
             as_of=as_of,
+            valid_at=valid_at,
+            known_at=known_at,
             context_budget_chars=context_budget_chars,
         )
 
@@ -90,6 +100,8 @@ def _answer_question_locked(
     top_k: int = 3,
     confidence_threshold: float = 0.3,
     as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
     context_budget_chars: int = 12000,
 ) -> QueryResult:
     if not question.strip():
@@ -98,29 +110,60 @@ def _answer_question_locked(
         raise ValueError("top_k must be at least 1")
     if context_budget_chars < 1000:
         raise ValueError("context_budget_chars must be at least 1000")
-    query_time = _parse_timestamp(as_of or datetime.now(UTC).isoformat(), "as_of")
+    valid_time, knowledge_time = _resolve_temporal_cutoffs(
+        as_of=as_of,
+        valid_at=valid_at,
+        known_at=known_at,
+    )
 
+    revision_tail_repaired = store.repair_partial_claim_revision_tail()
+    pending_claim_revisions_recovered = store.recover_pending_claim_revisions()
     pending_transition_recovered = store.recover_pending_transition()
     recovered_ingest_keys = store.recover_pending_ingest(
         prompt_version=PROMPT_VERSION,
     )
     projection_repaired = store.repair_dirty_projection()
+    transition_events = store.decision_events()
     selected, retrieval_trace = _select_top_k_pages_with_trace(
         store,
         question,
         k=top_k,
-        as_of=query_time.isoformat(),
+        valid_at=valid_time.isoformat(),
+        known_at=knowledge_time.isoformat(),
+        transition_events=transition_events,
     )
-    active, disputed, state_trace, superseded = _build_claim_view(selected, query_time)
+    revision_view = store.claim_revision_view(
+        known_at=knowledge_time.isoformat(),
+        page_slugs={page.slug for page in selected},
+    )
+    active, disputed, state_trace, superseded = _build_claim_view(
+        selected,
+        valid_time,
+        known_at=knowledge_time,
+        transition_events=transition_events,
+        revision_snapshots=revision_view.snapshots,
+        revision_claim_ids=revision_view.tracked_claim_ids,
+        incomplete_revision_claim_ids=revision_view.incomplete_claim_ids,
+        projected_active_claim_ids=set(
+            retrieval_trace.get("temporal_active_claim_ids", [])
+        ),
+    )
     trace = {
         **retrieval_trace,
         **state_trace,
+        "valid_at": valid_time.isoformat(),
+        "known_at": knowledge_time.isoformat(),
+        "bitemporal_axes_separated": int(valid_time != knowledge_time),
         # Normal retrieval does not materialize due lifecycle transitions.
         # Crash recovery above is an exceptional maintenance prelude; the
         # selected pages still receive an as-of logical view below.
         "scheduled_transitions_applied": 0,
         "scheduled_transitions_materialized_by_query": 0,
         "pending_transition_recovered": int(pending_transition_recovered),
+        "claim_revision_tail_repaired": int(revision_tail_repaired),
+        "pending_claim_revisions_recovered": int(
+            pending_claim_revisions_recovered
+        ),
         "pending_ingest_keys_recovered": len(recovered_ingest_keys),
         "projection_recovery_applied": int(projection_repaired),
         "loaded_source_ids": [],
@@ -131,6 +174,23 @@ def _answer_question_locked(
             item.claim.claim_id for item in superseded
         ],
     }
+    strict_bitemporal = valid_at is not None or known_at is not None
+    history_complete = not (
+        state_trace["untracked_claim_histories"]
+        or state_trace["incomplete_claim_histories"]
+        or retrieval_trace.get("graph_untracked_claim_histories", 0)
+        or retrieval_trace.get("graph_incomplete_claim_histories", 0)
+    )
+    trace["bitemporal_history_complete"] = int(history_complete)
+    if strict_bitemporal and not history_complete:
+        return _abstention_result(
+            answer="Bitemporal history is incomplete for the selected memory.",
+            route="none",
+            model="none",
+            prompt_tokens=0,
+            completion_tokens=0,
+            trace={**trace, "context_tokens": 0, "citation_entailment_pass": 0},
+        )
     if not selected or (not active and not disputed):
         return _abstention_result(
             answer="I do not have a supported current claim for that question.",
@@ -240,12 +300,16 @@ def select_top_k_pages(
     k: int = 5,
     *,
     as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
 ) -> list[WikiPage]:
     pages, _ = _select_top_k_pages_with_trace(
         store,
         question,
         k=k,
         as_of=as_of,
+        valid_at=valid_at,
+        known_at=known_at,
     )
     return pages
 
@@ -256,8 +320,18 @@ def _select_top_k_pages_with_trace(
     *,
     k: int,
     as_of: str | None = None,
-) -> tuple[list[WikiPage], dict[str, int]]:
-    slugs, trace = store.select_graph_candidates(question, k=k, as_of=as_of)
+    valid_at: str | None = None,
+    known_at: str | None = None,
+    transition_events: list[dict[str, Any]] | None = None,
+) -> tuple[list[WikiPage], dict[str, Any]]:
+    slugs, trace = store.select_graph_candidates(
+        question,
+        k=k,
+        as_of=as_of,
+        valid_at=valid_at,
+        known_at=known_at,
+        transition_events=transition_events,
+    )
     pages: list[WikiPage] = []
     for slug in slugs:
         try:
@@ -270,14 +344,49 @@ def _select_top_k_pages_with_trace(
 
 def _build_claim_view(
     pages: list[WikiPage],
-    as_of: datetime,
+    valid_at: datetime,
+    *,
+    known_at: datetime | None = None,
+    transition_events: list[dict[str, Any]] | None = None,
+    revision_snapshots: dict[str, dict[str, Any]] | None = None,
+    revision_claim_ids: frozenset[str] | set[str] | None = None,
+    incomplete_revision_claim_ids: frozenset[str] | set[str] | None = None,
+    projected_active_claim_ids: set[str] | None = None,
 ) -> tuple[list[_ContextClaim], list[_ContextClaim], dict[str, int], list[_ContextClaim]]:
+    knowledge_cutoff = known_at or valid_at
     active_candidates: list[_ContextClaim] = []
     disputed: list[_ContextClaim] = []
     superseded: list[_ContextClaim] = []
     invalid = 0
     future_filtered = 0
     archived_filtered = 0
+    observed_after_as_of_filtered = 0
+    lifecycle_transitions_rewound = 0
+    provenance_merges_rewound = 0
+    revision_snapshots = revision_snapshots or {}
+    tracked_revision_ids = set(revision_claim_ids or ())
+    incomplete_revision_ids = set(incomplete_revision_claim_ids or ())
+    graph_active_ids = set(projected_active_claim_ids or ())
+    revision_snapshots_loaded = 0
+    untracked_claim_histories = 0
+    incomplete_claim_histories = 0
+    knowledge_visible: list[tuple[_ContextClaim, datetime]] = []
+    events_by_claim: dict[str, list[TransitionEvent]] = {}
+    provenance_by_claim: dict[str, list[dict[str, Any]]] = {}
+    for raw_event in transition_events or []:
+        # Provenance merges share the append-only ledger but do not change a
+        # claim's lifecycle state.
+        if raw_event.get("event_type") == "provenance_merge":
+            claim_id = str(raw_event.get("claim_id", ""))
+            source_id = str(raw_event.get("source_id", ""))
+            timestamp = str(raw_event.get("timestamp", ""))
+            if not claim_id or not source_id or not timestamp:
+                raise ValueError("invalid provenance merge event")
+            _parse_timestamp(timestamp, "provenance merge timestamp")
+            provenance_by_claim.setdefault(claim_id, []).append(raw_event)
+            continue
+        event = TransitionEvent.from_dict(raw_event)
+        events_by_claim.setdefault(event.claim_id, []).append(event)
     for page in pages:
         raw_claims = page.metadata.get("claims", [])
         if not isinstance(raw_claims, list):
@@ -292,21 +401,127 @@ def _build_claim_view(
             except ValueError:
                 invalid += 1
                 continue
+            current_claim_id = claim.claim_id
+            revision_backed = current_claim_id in tracked_revision_ids
+            if current_claim_id in incomplete_revision_ids:
+                incomplete_claim_histories += 1
+                superseded.append(_ContextClaim(page.slug, page.title, claim))
+                continue
+            if revision_backed:
+                snapshot = revision_snapshots.get(current_claim_id)
+                if snapshot is None:
+                    observed_after_as_of_filtered += 1
+                    superseded.append(_ContextClaim(page.slug, page.title, claim))
+                    continue
+                try:
+                    claim = Claim.from_dict(snapshot)
+                except ValueError:
+                    invalid += 1
+                    continue
+                revision_snapshots_loaded += 1
+            else:
+                untracked_claim_histories += 1
+            item = _ContextClaim(page.slug, page.title, claim)
+            if _parse_timestamp(claim.observed_at, "observed_at") > knowledge_cutoff:
+                observed_after_as_of_filtered += 1
+                superseded.append(item)
+                continue
+            projected_status: ClaimStatus | None = claim.status
+            if not revision_backed:
+                for event in reversed(events_by_claim.get(claim.claim_id, [])):
+                    if (
+                        _parse_timestamp(event.timestamp, "transition timestamp")
+                        <= knowledge_cutoff
+                    ):
+                        continue
+                    if projected_status is not event.to_status:
+                        raise ValueError(
+                            "decision ledger cannot rewind canonical claim state: "
+                            f"{claim.claim_id}"
+                        )
+                    projected_status = event.from_status
+                    lifecycle_transitions_rewound += 1
+            if projected_status is None:
+                observed_after_as_of_filtered += 1
+                superseded.append(item)
+                continue
+            if projected_status is not claim.status:
+                claim = Claim.from_dict(
+                    {**claim.to_dict(), "status": projected_status.value}
+                )
+            if (
+                claim.claim_id in graph_active_ids
+                and claim.status is not ClaimStatus.ACTIVE
+            ):
+                claim = Claim.from_dict(
+                    {**claim.to_dict(), "status": ClaimStatus.ACTIVE.value}
+                )
+            hidden_sources = set() if revision_backed else {
+                str(event["source_id"])
+                for event in provenance_by_claim.get(claim.claim_id, [])
+                if _parse_timestamp(
+                    str(event["timestamp"]), "provenance merge timestamp"
+                )
+                > knowledge_cutoff
+            }
+            if hidden_sources:
+                source_ids = [
+                    source_id
+                    for source_id in claim.source_ids
+                    if source_id not in hidden_sources
+                ]
+                evidence = [
+                    evidence.to_dict()
+                    for evidence in claim.evidence
+                    if evidence.source_id not in hidden_sources
+                ]
+                provenance_merges_rewound += len(hidden_sources)
+                if not source_ids or not evidence:
+                    invalid += 1
+                    continue
+                claim = Claim.from_dict(
+                    {
+                        **claim.to_dict(),
+                        "source_ids": source_ids,
+                        "evidence": evidence,
+                    }
+                )
             item = _ContextClaim(page.slug, page.title, claim)
             if claim.status is ClaimStatus.ARCHIVED:
                 archived_filtered += 1
                 superseded.append(item)
                 continue
-            if claim.status is ClaimStatus.SUPERSEDED:
-                superseded.append(item)
-                continue
-            if claim.effective_at and _parse_timestamp(claim.effective_at, "effective_at") > as_of:
-                future_filtered += 1
-                continue
-            if claim.status is ClaimStatus.DISPUTED:
-                disputed.append(item)
-            elif claim.status is ClaimStatus.ACTIVE:
-                active_candidates.append(item)
+            valid_from = _parse_timestamp(
+                claim.effective_at or claim.observed_at,
+                "effective_at" if claim.effective_at else "observed_at",
+            )
+            knowledge_visible.append((item, valid_from))
+
+    # A stored SUPERSEDED state is only eligible for valid-time rewind when a
+    # knowledge-visible successor actually names it. This preserves the
+    # long-standing safety rule that an orphaned stale claim cannot become
+    # active merely because no successor happened to be retrieved.
+    known_superseded_ids = {
+        loser_id
+        for item, _valid_from in knowledge_visible
+        for loser_id in item.claim.supersedes
+    }
+    for item, valid_from in knowledge_visible:
+        claim = item.claim
+        if valid_from > valid_at:
+            future_filtered += 1
+            superseded.append(item)
+            continue
+        if (
+            claim.status is ClaimStatus.SUPERSEDED
+            and claim.claim_id not in known_superseded_ids
+        ):
+            superseded.append(item)
+            continue
+        if claim.status is ClaimStatus.DISPUTED:
+            disputed.append(item)
+            continue
+        active_candidates.append(item)
 
     active: list[_ContextClaim] = []
     view_disputed = 0
@@ -319,44 +534,21 @@ def _build_claim_view(
             disputed.extend(group)
             view_disputed += len(group)
             continue
-        if len(group) == 1:
-            active.extend(group)
-            continue
-        values = {item.claim.normalized_value for item in group}
-        if len(values) == 1:
-            active.extend(group)
-            continue
         group_ids = {item.claim.claim_id for item in group}
-        group_by_id = {item.claim.claim_id: item for item in group}
-
-        def transitively_superseded(item: _ContextClaim) -> set[str]:
-            reached: set[str] = set()
-            pending = list(item.claim.supersedes)
-            while pending:
-                claim_id = pending.pop()
-                if claim_id in reached:
-                    continue
-                reached.add(claim_id)
-                predecessor = group_by_id.get(claim_id)
-                if predecessor is not None:
-                    pending.extend(predecessor.claim.supersedes)
-            return reached
-
-        explicit_winners = [
-            item
+        superseded_ids = {
+            loser_id
             for item in group
-            if item.claim.effective_at
-            and _parse_timestamp(item.claim.effective_at, "effective_at") <= as_of
-            and (group_ids - {item.claim.claim_id}).issubset(
-                transitively_superseded(item)
-            )
+            for loser_id in item.claim.supersedes
+            if loser_id in group_ids
+        }
+        terminals = [
+            item for item in group if item.claim.claim_id not in superseded_ids
         ]
-        if len(explicit_winners) == 1:
-            active.extend(explicit_winners)
+        terminal_values = {item.claim.normalized_value for item in terminals}
+        if terminals and len(terminal_values) == 1:
+            active.extend(terminals)
             superseded.extend(
-                item
-                for item in group
-                if item.claim.claim_id != explicit_winners[0].claim.claim_id
+                item for item in group if item.claim.claim_id in superseded_ids
             )
             continue
         disputed.extend(group)
@@ -370,6 +562,13 @@ def _build_claim_view(
             "disputed_claims_loaded": len(disputed),
             "superseded_claims_filtered": len(superseded),
             "future_effective_claims_filtered": future_filtered,
+            "observed_after_as_of_claims_filtered": observed_after_as_of_filtered,
+            "observed_after_known_at_claims_filtered": observed_after_as_of_filtered,
+            "lifecycle_transitions_rewound": lifecycle_transitions_rewound,
+            "provenance_merges_rewound": provenance_merges_rewound,
+            "claim_revision_snapshots_loaded": revision_snapshots_loaded,
+            "untracked_claim_histories": untracked_claim_histories,
+            "incomplete_claim_histories": incomplete_claim_histories,
             "archived_claims_filtered": archived_filtered,
             "invalid_claims_filtered": invalid,
             "view_conflicts_disputed": view_disputed,
@@ -706,6 +905,28 @@ def _abstention_result(
         abstained=True,
         trace=trace,
     )
+
+
+def _resolve_temporal_cutoffs(
+    *,
+    as_of: str | None,
+    valid_at: str | None,
+    known_at: str | None,
+) -> tuple[datetime, datetime]:
+    if as_of is not None and (valid_at is not None or known_at is not None):
+        raise ValueError("as_of cannot be combined with valid_at or known_at")
+    if (valid_at is None) != (known_at is None):
+        raise ValueError("valid_at and known_at must be provided together")
+    if as_of is not None:
+        cutoff = _parse_timestamp(as_of, "as_of")
+        return cutoff, cutoff
+    if valid_at is not None and known_at is not None:
+        return (
+            _parse_timestamp(valid_at, "valid_at"),
+            _parse_timestamp(known_at, "known_at"),
+        )
+    now = datetime.now(UTC)
+    return now, now
 
 
 def _parse_timestamp(value: str, label: str) -> datetime:

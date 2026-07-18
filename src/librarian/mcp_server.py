@@ -8,6 +8,7 @@ from __future__ import annotations
 from time import perf_counter
 
 from .config import get_memory_root
+from .explain import explain_memory
 from .forget import run_lint
 from .ingest import ingest_source
 from .llm import get_router
@@ -56,7 +57,13 @@ def memory_ingest_impl(source_id: str, text: str) -> dict:
     }
 
 
-def memory_query_impl(question: str, top_k: int = 5) -> dict:
+def memory_query_impl(
+    question: str,
+    top_k: int = 5,
+    as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
+) -> dict:
     if not 1 <= top_k <= 10:
         raise ValueError("top_k must be between 1 and 10")
     started = perf_counter()
@@ -65,6 +72,9 @@ def memory_query_impl(question: str, top_k: int = 5) -> dict:
         store=store,
         router=get_router(),
         top_k=top_k,
+        as_of=as_of,
+        valid_at=valid_at,
+        known_at=known_at,
     )
     latency_ms = int((perf_counter() - started) * 1000)
     ledger.append(
@@ -147,7 +157,24 @@ def memory_stats_impl() -> dict:
         "status": "ok",
         "ledger": ledger.summary(),
         "wiki_pages": len(store.list_wiki_pages()),
+        "claim_history": store.claim_revision_diagnostics(),
     }
+
+
+def memory_explain_impl(
+    key: str,
+    as_of: str | None = None,
+    valid_at: str | None = None,
+    known_at: str | None = None,
+) -> dict:
+    """Explain one canonical memory key without calling a model."""
+    return explain_memory(
+        store=store,
+        key=key,
+        as_of=as_of,
+        valid_at=valid_at,
+        known_at=known_at,
+    )
 
 
 def main() -> None:
@@ -167,9 +194,21 @@ def main() -> None:
         return memory_ingest_impl(source_id, text)
 
     @mcp.tool()
-    def memory_query(question: str, top_k: int = 5) -> dict:
-        """Query memory with index-first top-k retrieval and citations."""
-        return memory_query_impl(question, top_k)
+    def memory_query(
+        question: str,
+        top_k: int = 5,
+        as_of: str | None = None,
+        valid_at: str | None = None,
+        known_at: str | None = None,
+    ) -> dict:
+        """Query memory by valid time and knowledge time with citations."""
+        return memory_query_impl(
+            question,
+            top_k,
+            as_of,
+            valid_at,
+            known_at,
+        )
 
     @mcp.tool()
     def memory_lint(apply_archive: bool = True) -> dict:
@@ -180,6 +219,16 @@ def main() -> None:
     def memory_stats() -> dict:
         """Return aggregated ledger statistics for memory operations."""
         return memory_stats_impl()
+
+    @mcp.tool()
+    def memory_explain(
+        key: str,
+        as_of: str | None = None,
+        valid_at: str | None = None,
+        known_at: str | None = None,
+    ) -> dict:
+        """Explain a bitemporal claim view and append-only transition history."""
+        return memory_explain_impl(key, as_of, valid_at, known_at)
 
     mcp.run()
 
