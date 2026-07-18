@@ -299,7 +299,7 @@ _DEMO_HTML = """<!doctype html>
       setSample(samples.a);
     }
     function hasStandaloneNumber(valueText, expected) {
-      return new RegExp("(^|\\D)" + expected + "(\\D|$)").test(String(valueText || ""));
+      return new RegExp("(^|\\\\D)" + expected + "(\\\\D|$)").test(String(valueText || ""));
     }
 
     async function request(label, url, options = {}) {

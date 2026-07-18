@@ -47,3 +47,4 @@ def test_demo_html_is_stable_and_contains_no_hidden_provider_request() -> None:
     assert "initializeRun();" in first
     assert 'request("Ingest", "/ingest"' in first
     assert 'request("Query", "/query"' in first
+    assert 'new RegExp("(^|\\\\D)" + expected + "(\\\\D|$)")' in first
