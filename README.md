@@ -21,11 +21,10 @@ Core capabilities:
 The frozen runtime tree passed deterministic CI, a bounded live-Qwen two-case
 gate, exact-SHA deployment to Alibaba Cloud, and an authenticated
 restart-persistence proof. Runtime commit
-`5dee1dbae5e350c4b2a1466f0002596168bbe15e` is `RELEASE_VERIFIED`; the public
+`c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db` is `RELEASE_VERIFIED`; the public
 health response is bound to that SHA. It has not been promoted by an
-independent private holdout, and the remaining human/form/media evidence means
-the project is not submission-ready. No winning or general production-ready
-claim is made.
+independent private holdout, and submission completeness is tracked separately
+from runtime proof. No winning or general production-ready claim is made.
 
 Current proof and contract status:
 

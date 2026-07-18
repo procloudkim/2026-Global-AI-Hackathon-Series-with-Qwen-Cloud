@@ -1,6 +1,6 @@
 {
-  "approval_ticket_sha256": "56094b3662895af70381f1d78ebbe97acd431cd3b72851455ac5e3d0de13ebe2",
-  "candidate_sha": "d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
+  "approval_ticket_sha256": "bd3f82e05469c63a479cb99090caf22c4f535428f8b3629a8a4284de59fcfc3e",
+  "candidate_sha": "c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db",
   "checks": {
     "alibaba_host_identity": {
       "detail": "local DMI identifies Alibaba Cloud; raw DMI values are not recorded",
@@ -75,9 +75,9 @@
       "passed": true
     }
   },
-  "cloud_approval_receipt_sha256": "cc77254623676e48aa706c29c09fc39beac5f9a280ae6fa749f4daed7ebd67f8",
+  "cloud_approval_receipt_sha256": "ee2a50103a596e0b61c3903d862cb64190ae44b2d1a9f1a7ff3eb62541bc13d4",
   "deployment_target_sha256": "ed1f92496bb6e71311b90d7547ef2d9aa6b7a0d347b3f0518e25d64c004faa5c",
-  "observed_at": "2026-07-18T10:19:43.012745+00:00",
+  "observed_at": "2026-07-18T11:09:49.149020+00:00",
   "provider_signal": "alibaba_cloud_dmi",
   "runtime_contract": {
     "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
@@ -93,7 +93,7 @@
   "schema_version": "librarian-infrastructure-readiness/v1",
   "status": "PASS",
   "storage": {
-    "available_bytes": 96661626880,
+    "available_bytes": 96583647232,
     "filesystem_type": "ext4",
     "mount_target": "/"
   }

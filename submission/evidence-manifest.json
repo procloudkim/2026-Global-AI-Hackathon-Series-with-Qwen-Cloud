@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T19:27:48.955+09:00",
+  "generated_at": "2026-07-18T20:21:19.520+09:00",
   "contract": {
     "path": "submission/hackathon-contract.json",
     "sha256": "66cd2090d6b0ace5633b15d44d94beaa28f08c159068c4a209fea1a5340f3353"
@@ -8,9 +8,9 @@
   "candidate": {
     "status": "frozen",
     "baseline_head_sha": "57e706c17659f3007b21a97342e3783c14ee49ea",
-    "commit_sha": "d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
+    "commit_sha": "c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db",
     "tree_sha256": "fc36e75235a54784d89c0360a62452a2aa62e7f6111b6b102d191cb2fef78842",
-    "note": "The frozen product tree fixes the guided-demo standalone-number proof check while retaining the deployed memory and Qwen boundaries. Deployment evidence is refreshed after the exact-SHA workflow completes."
+    "note": "The deployed product tree fixes the guided-demo standalone-number proof check while retaining the memory and Qwen boundaries. GitHub Actions run 29642034009 verified this exact SHA on Alibaba Cloud."
   },
   "status_definitions": {
     "verified": "Evidence is complete on the surface required by the contract.",
@@ -144,7 +144,7 @@
       "required_by": [
         "submit"
       ],
-      "note": "Mermaid source and rendered PNG were visually inspected against deployed candidate d5ca972. Devpost file upload remains pending."
+      "note": "Mermaid source and rendered PNG were visually inspected against deployed candidate c1ee509. Devpost file upload remains pending."
     },
     {
       "id": "workbench_deployment_screenshot",
@@ -154,7 +154,7 @@
       "path": "submission/evidence/workbench-deployment.png",
       "expected_path": "submission/evidence/workbench-deployment.png",
       "value": null,
-      "sha256": "d23d48e740d1bcb625d965c7ac726dadf5c71a765f4b448b07dd4620fc423d8a",
+      "sha256": "c5d4a1ccad38e1859d78a581c23cabee40d39022c632c923d87039db5f8649b8",
       "required_by": [
         "submit"
       ],
@@ -171,7 +171,7 @@
       "required_by": [
         "submit"
       ],
-      "note": "Public health returned HTTP 200 with deployed_sha d5ca972b74688eab1c5e3eee63bb89306b55d6a0. Unauthenticated demo root returns 401, HTTP redirects to HTTPS, and port 8080 is not publicly reachable. Judge credentials must be supplied only through the private Devpost testing instructions."
+      "note": "Public health returned HTTP 200 with deployed_sha c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db. Unauthenticated demo root returns 401, HTTP redirects to HTTPS, and port 8080 is not publicly reachable. Judge credentials must be supplied only through the private Devpost testing instructions."
     },
     {
       "id": "public_demo_video",
@@ -194,12 +194,12 @@
       "path": "proof/runs/release-live-qwen/receipt.json",
       "expected_path": "proof/runs/release-live-qwen/receipt.json",
       "value": "LIVE_QWEN_2CASE_PASS",
-      "sha256": "8f46726ca7a77521f50ac302792bc2b99037d9bed6e5dcc50b6ba80c5cbc7070",
+      "sha256": "8088b46804263cc2a20902804ee507a2156cb4d47b32991320ad0bfda68aec34",
       "required_by": [
         "deploy",
         "submit"
       ],
-      "note": "The candidate-bound live Qwen two-case gate passed with 13 calls, 8,961 tokens, and zero provider errors for tree 24684abc. This is release evidence only; promotion remains HOLD because the slice has no independent external verifier or fair live B2 comparison."
+      "note": "The candidate-bound live Qwen two-case gate passed with 13 calls, 8,837 tokens, and zero provider errors for tree fc36e752. This is release evidence only; promotion remains HOLD because the slice has no independent external verifier or fair live B2 comparison."
     },
     {
       "id": "infrastructure_readiness_receipt",
@@ -209,12 +209,12 @@
       "path": "proof/deployments/infrastructure-readiness.json",
       "expected_path": "proof/deployments/infrastructure-readiness.json",
       "value": "PASS",
-      "sha256": "0a28d9f1d04fd9f1bc485f732e33cb5b34669146c34440ff2585bbf075ee4894",
+      "sha256": "c058ecc5f59c95cddc44a0f11df46f7abfa43b797a12d1074d55b4e1a62ba83d",
       "required_by": [
         "deploy",
         "submit"
       ],
-      "note": "Masked read-only host inspection passed for exact SHA d5ca972b7468 on Alibaba Cloud. The app is loopback-bound, Caddy enforces authentication and request limits, and Qwen configuration remains in a masked root-owned file."
+      "note": "Masked read-only host inspection passed for exact SHA c1ee50907c2b on Alibaba Cloud. The app is loopback-bound, Caddy enforces authentication and request limits, and Qwen configuration remains in a masked root-owned file."
     },
     {
       "id": "cloud_approval_receipt",
@@ -238,7 +238,7 @@
       "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": "41de2b94c39efac3fa46d05c491ca01a2616a5f034749c8f71372d24a3989275",
+      "sha256": "2043cca480ef147469785d3719ea9c038b1969e2926264c9b2026154544743d5",
       "hash_status": "devpost_project_version_2",
       "required_by": [
         "submit"
@@ -252,7 +252,7 @@
       "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": "41de2b94c39efac3fa46d05c491ca01a2616a5f034749c8f71372d24a3989275",
+      "sha256": "2043cca480ef147469785d3719ea9c038b1969e2926264c9b2026154544743d5",
       "hash_status": "reviewed_current_submission",
       "required_by": [
         "submit"
@@ -279,7 +279,7 @@
       "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": "41de2b94c39efac3fa46d05c491ca01a2616a5f034749c8f71372d24a3989275",
+      "sha256": "2043cca480ef147469785d3719ea9c038b1969e2926264c9b2026154544743d5",
       "hash_status": "deployed_sha_bound",
       "required_by": [
         "submit"
@@ -293,7 +293,7 @@
       "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": "41de2b94c39efac3fa46d05c491ca01a2616a5f034749c8f71372d24a3989275",
+      "sha256": "2043cca480ef147469785d3719ea9c038b1969e2926264c9b2026154544743d5",
       "hash_status": "reviewed_current_submission",
       "required_by": [
         "submit"
@@ -307,7 +307,7 @@
       "status": "verified",
       "path": "submission/DEVPOST_TEMPLATE.md",
       "value": null,
-      "sha256": "41de2b94c39efac3fa46d05c491ca01a2616a5f034749c8f71372d24a3989275",
+      "sha256": "2043cca480ef147469785d3719ea9c038b1969e2926264c9b2026154544743d5",
       "hash_status": "reviewed_current_submission",
       "required_by": [
         "submit"
@@ -333,12 +333,12 @@
       "status": "verified",
       "path": "proof/deployments/release-manifest.json",
       "expected_path": "proof/deployments/release-manifest.json",
-      "value": "DEPLOYED:d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
-      "sha256": "bf17faf2a37fa4ee65017b98325026de8c6838d2a50a52806e3d94a8b0415a93",
+      "value": "DEPLOYED:c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db",
+      "sha256": "a44a63ae8c00af74de35df8ba5db349fdc5d2491f7528f238844ca4e46356948",
       "required_by": [
         "submit"
       ],
-      "note": "Immutable Git archive, exact-SHA health, candidate-bound release gate, and persistent-memory integrity passed in GitHub Actions run 29640621032."
+      "note": "Immutable Git archive, exact-SHA health, candidate-bound release gate, and persistent-memory integrity passed in GitHub Actions run 29642034009."
     },
     {
       "id": "restart_persistence_receipt",
@@ -348,11 +348,11 @@
       "path": "proof/deployments/restart-persistence.json",
       "expected_path": "proof/deployments/restart-persistence.json",
       "value": "PASS",
-      "sha256": "0399c0af75678c497565736fbbcebdb7ff63fd0c3f10fe9934d82500d34fe063",
+      "sha256": "9b96e2a5b4ba54e5b9fd3171b7de8b21ff108c17b83c3220947eef43af5aa051",
       "required_by": [
         "submit"
       ],
-      "note": "Five bounded API operations and five logical provider calls used 5,268 tokens. Exact-SHA health and memory digests matched across restart; old claims were superseded, new claims active, and unrelated memory preserved."
+      "note": "Five bounded API operations and five logical provider calls used 5,389 tokens. Exact-SHA health and memory digests matched across restart; old claims were superseded, new claims active, and unrelated memory preserved."
     },
     {
       "id": "release_finalization_receipt",
@@ -362,11 +362,11 @@
       "path": "proof/deployments/release-finalization.json",
       "expected_path": "proof/deployments/release-finalization.json",
       "value": "RELEASE_VERIFIED",
-      "sha256": "b4634ce93b83847423ae0e7348b0e19d14c6e76e6ec3610abb24d1c67c7f42d5",
+      "sha256": "99af9b88e4f46d5d08434e383a2ccd19c03af7f9850bbe7e27ac9d10aa612598",
       "required_by": [
         "submit"
       ],
-      "note": "Finalization binds deployment manifest bf17faf2 and restart receipt 0399c0af by SHA-256 for candidate d5ca972b7468."
+      "note": "Finalization binds deployment manifest a44a63ae and restart receipt 9b96e2a5 by SHA-256 for candidate c1ee50907c2b."
     }
   ]
 }

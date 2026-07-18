@@ -1,7 +1,7 @@
 # Librarian demo video script
 
 Target: 2:45–2:55
-Deployed commit: `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`
+Deployed commit: `c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db`
 
 ## 0:00–0:18 — Problem
 
@@ -41,7 +41,7 @@ Narration:
 
 > This Alibaba Cloud Assistant result is from the live backend, not a local mock.
 > Librarian and Caddy are both active. Health and the current release path agree
-> on commit d5ca972.
+> on commit c1ee509.
 
 ## 0:54–1:18 — Source A: original fact
 
@@ -119,8 +119,8 @@ Narration:
 
 - [ ] Keep the finished video under three minutes.
 - [ ] Use English narration or complete English subtitles.
-- [ ] Show Workbench branding, both active services, `/health`, and the release path.
-- [ ] Use only the new receipt bound to `d5ca972`.
+- [ ] Show Alibaba Cloud branding, both active services, `/health`, and the release path.
+- [ ] Use only the new receipt bound to `c1ee509`.
 - [ ] Do not expose credentials, account identifiers, tokens, private IPs, or shell history.
 - [ ] Do not mention private holdouts, independent promotion, or simulated evaluation.
 - [ ] Publish on YouTube or Vimeo so it plays without login.

@@ -1,5 +1,5 @@
 {
-  "candidate_tree_sha256": "24684abc8524e9ea2280abb7f7869bd518e234f72ba377d481bd87e5c65f03fb",
+  "candidate_tree_sha256": "fc36e75235a54784d89c0360a62452a2aa62e7f6111b6b102d191cb2fef78842",
   "checks": {
     "maximum_false_forget_count": true,
     "maximum_scope_false_forget_count": true,
@@ -15,11 +15,11 @@
     "production_wire_citation_fidelity": true
   },
   "contract_version": "proof-first-live-qwen/v1",
-  "created_at": "2026-07-18T10:20:19.233104+00:00",
+  "created_at": "2026-07-18T11:10:29.997708+00:00",
   "evidence_mode": "live_runtime",
   "hashes": {
     "cases_sha256": "d8b064735288cf9bac9735f46108f00c708e6e450240e41a2b0cb757e8a8da23",
-    "dataset_manifest_sha256": "4f22bd7bf0009e0cbd1ef59aebd35fe9741ac7aae4240ff89bff78d5602c00a0",
+    "dataset_manifest_sha256": "13280bfc17340fe21f058c133a20557139001fdf414d5ec1b54f91986fa100f6",
     "gold_sha256": "8429226c9566857baede9c7944d5ee27b524408538647665ebee508ee041bda8",
     "policy_sha256": "fda9b210c715ec6351971aff1a433194dfee05227e739715a052d02d7c31206e",
     "runner_sha256": "b2481ff85b4af6c612e18d77ff64d57411b58fe3bf059baf4a07bd36ef474987",
@@ -34,7 +34,7 @@
     "abstention_accuracy": 1.0,
     "checkpoint_count": 6,
     "citation_entailment": 1.0,
-    "context_tokens": 582,
+    "context_tokens": 579,
     "current_cited_answer_success_count": 6,
     "current_cited_answer_success_rate": 1.0,
     "fact_set_accuracy": 1.0,
@@ -49,8 +49,8 @@
     "stale_leakage_rate": 0.0,
     "state_transition_accuracy": 1.0,
     "state_violation_count": 0,
-    "tokens_per_correct_current_answer": 814.1666666666666,
-    "total_tokens": 4885,
+    "tokens_per_correct_current_answer": 797.5,
+    "total_tokens": 4785,
     "transition_ledger_integrity": 1.0,
     "transition_ledger_violation_count": 0,
     "wire_citation_fidelity": 1.0,
@@ -73,16 +73,16 @@
   },
   "provider_usage": {
     "calls": 13,
-    "completion_tokens": 2232,
+    "completion_tokens": 2138,
     "models": [
       "qwen-flash",
       "qwen-plus-2025-07-28"
     ],
-    "prompt_tokens": 6729,
+    "prompt_tokens": 6699,
     "provider_errors": 0,
     "requested_completion_tokens": 8880,
-    "total_latency_ms": 20167,
-    "total_tokens": 8961
+    "total_latency_ms": 22010,
+    "total_tokens": 8837
   },
   "runtime": {
     "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",

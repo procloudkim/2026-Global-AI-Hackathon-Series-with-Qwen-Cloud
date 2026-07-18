@@ -1,19 +1,19 @@
 {
   "artifact_sha256": {
-    "claim-state.json": "36955c29f8018510cf90000ea0b87e9e98d4546972727534cc9f52ce1a32439c",
-    "health-after-restart.json": "3eb7a0feed2c105ce93d1e30c965459d11743675b7f72e4b799b12c1c6ed4249",
-    "health-before.json": "3eb7a0feed2c105ce93d1e30c965459d11743675b7f72e4b799b12c1c6ed4249",
-    "ingest-a.json": "7c8b769e298d0090b06da154031232094851062965806e39d9d21bc7aceb52c6",
-    "ingest-b.json": "ffd4b47e5577214ca4062dd02bbddbfba3a83710dffc1af939ccce356f6b9283",
-    "query-after-restart.json": "4c06def90309d6a664503ac56e3e2e5c1fd3be62878a089f14bfb8fbcbc27162",
-    "query-before-restart.json": "d061df0baae99995560f1fc84cd134052482fd097beb33dd428e90251e0212f7",
-    "query-marker-after-restart.json": "0e9cd9aab9b4dd3554f30b111a6d28be0d7feaa55ed983cca6b6677c327d905c",
-    "stats-after.json": "c54db4e552ba7c4a4e2361496ab22738a2379df61595f034380395c80a4133ff",
-    "stats-before.json": "b651181e136e47b8a26a47e9a7625dab01b4d18c7d612bb0cfa6167da6223dc9",
-    "stats-checkpoint-1.json": "a0a6990499779141409bfb1edf486e0fca3518eabb3beb5d3f1f101bc3efce80",
-    "stats-checkpoint-2.json": "dd9d1779f60fc74d9b4db69bd3b1526e893519ffb58e84d9736da88f1645f3c4",
-    "stats-checkpoint-3.json": "e3067125a957153ac60f9e41e7dd7dcc6c8657fff97c46d10b73420e47483380",
-    "stats-checkpoint-4.json": "515a7b14c6dbbb180807ae48033547aa81e913a848b306313e7e35087e202e7b"
+    "claim-state.json": "ba5ec17f0140252c275556283f10e7ba398d9a4708627e2af88086d729931c3c",
+    "health-after-restart.json": "ede5a86526af1ced232df2fc98f9622f6beaa149ba2e16e71fe7d77c11b902b4",
+    "health-before.json": "ede5a86526af1ced232df2fc98f9622f6beaa149ba2e16e71fe7d77c11b902b4",
+    "ingest-a.json": "d1d2d3819ca7c1e5653d5a38994551e6ec8ed4bf349f83a27b45655b7ae03118",
+    "ingest-b.json": "61aa9a1c55e237a12a6d9d355b2f416bd39f5c89ab81e7c57bcefbc1ddd6c73b",
+    "query-after-restart.json": "8a83aefa06662ea71d076b4c7155c51f6ca76e47f1824ce45f73029d923f2354",
+    "query-before-restart.json": "4a06f70e6896ff39485053a787960e4d234f57cd4767b3a105dba07b737007d4",
+    "query-marker-after-restart.json": "9ebda5ce85d5d09d548148286bf49bc93ef373297d991066146c2523fb7c8857",
+    "stats-after.json": "3a47c54590e5779fa8fbad9619a50d801708f0f73536ba05bcbc7f40de2273ce",
+    "stats-before.json": "027b81b33569cb4b6ced3cf703a8ed1c4b722a74f5e9657c8d62c1292cc976b6",
+    "stats-checkpoint-1.json": "61c7c94d86daf188517fb616fc01298ab069a292d9abc464b4f1773a87df1a28",
+    "stats-checkpoint-2.json": "e082227a14c7ab598c30f40c3b2ebda16a4551b419be727f922ee02bc978f840",
+    "stats-checkpoint-3.json": "524bcb4bf2eb8b0171d83a7f1c925c8727c144a2dabe9dd3eecdd34330ba0221",
+    "stats-checkpoint-4.json": "c51a75089cd79801cc9fe3b13d40fef2a62bb99485e216cda0d69963feb30e98"
   },
   "assertions": {
     "decision_event_evidence_present": true,
@@ -36,25 +36,25 @@
     "timeout_seconds_per_http_operation": 120,
     "token_checkpoint_after_each_api_operation": true
   },
-  "candidate_sha": "d5ca972b74688eab1c5e3eee63bb89306b55d6a0",
-  "memory_sha256_after_restart": "14c2f4695bbcae5587a5fbf0a83c655010970ee65ade9323dc5652156369eb5c",
-  "memory_sha256_before_restart": "14c2f4695bbcae5587a5fbf0a83c655010970ee65ade9323dc5652156369eb5c",
-  "proof_namespace": "release-proof-d5ca972b7468-29640621032-1",
+  "candidate_sha": "c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db",
+  "memory_sha256_after_restart": "8ddbdb3237788220e13bf41211fd4bc06ed9cfc579b7c9fce5c9a3301236d630",
+  "memory_sha256_before_restart": "8ddbdb3237788220e13bf41211fd4bc06ed9cfc579b7c9fce5c9a3301236d630",
+  "proof_namespace": "release-proof-c1ee50907c2b-29642034009-1",
   "quota_old_claim_trace_modes": {
     "after": "not_retrieved",
     "before": "not_retrieved"
   },
   "schema_version": "librarian-restart-persistence-proof/v1",
   "source_ids": [
-    "release-proof-d5ca972b7468-29640621032-1-source-a",
-    "release-proof-d5ca972b7468-29640621032-1-source-b"
+    "release-proof-c1ee50907c2b-29642034009-1-source-a",
+    "release-proof-c1ee50907c2b-29642034009-1-source-b"
   ],
   "status": "PASS",
   "usage": {
     "api_operations": 5,
     "logical_provider_calls_from_route_trace": 5,
     "maximum_provider_attempts_from_configured_retry": 5,
-    "total_tokens": 5268
+    "total_tokens": 5389
   },
   "verifier_sha256": "e5244745215bcca3170edde1819e8067af552532a2d898338c8f685d99bb34f0"
 }

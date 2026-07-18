@@ -113,7 +113,7 @@ instructions. Credentials are intentionally absent from the public repository.
    superseded, and the replacement transition is preserved.
 7. Inspect `proof/deployments/restart-persistence.json` and
    `proof/deployments/release-finalization.json`; both bind deployed runtime
-   commit `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`.
+   commit `c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db`.
 
 ## AI tools disclosure
 
@@ -140,7 +140,7 @@ that require the owner’s explicit confirmation before final submission.
 
 ## Proof boundary
 
-Deployed candidate `d5ca972b74688eab1c5e3eee63bb89306b55d6a0`
+Deployed candidate `c1ee50907c2bebbab2f2f85e7d08a4ae0ccf22db`
 passed deterministic CI, the bounded two-case live Qwen gate, exact-SHA Alibaba
 deployment, and restart-persistence verification. The live release slice is not
 an independent private-holdout promotion:
