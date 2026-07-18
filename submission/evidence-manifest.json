@@ -8,9 +8,9 @@
   "candidate": {
     "status": "frozen",
     "baseline_head_sha": "57e706c17659f3007b21a97342e3783c14ee49ea",
-    "commit_sha": "be64ca024a595d2dd73c6e2aba68009f7c187e11",
-    "tree_sha256": "8e4a3c3e18bd58a402a1198b0b6b172bbc47f3fecdfd74afa785f0e0f4991526",
-    "note": "The frozen product tree adds the guided demo and provider-free memory explanation to the previously verified runtime. Deployment receipts still describe 5dee1d until the new exact-SHA workflow completes."
+    "commit_sha": "bf06553872f7bbcbb7dca14a86360aa380a1de83",
+    "tree_sha256": "74ea17459a2578da7c4f2f77d8541ae33eda35e71ca89beb1e4b1d54148773b8",
+    "note": "The frozen product tree adds the guided demo and provider-free memory explanation, plus a fail-closed deployment fix that keeps existing memory initialization side-effect free. Deployment receipts still describe 5dee1d until the new exact-SHA workflow completes."
   },
   "status_definitions": {
     "verified": "Evidence is complete on the surface required by the contract.",
@@ -201,7 +201,7 @@
       "path": "submission/evidence/cloud-approval-receipt.json",
       "expected_path": "submission/evidence/cloud-approval-receipt.json",
       "value": "APPROVED_ZERO_COST",
-      "sha256": "f21f9beb3740415c086ea26b4694c6042db7a2a3896e08529eaf1c39ddeea548",
+      "sha256": "ed18a6d8d2a18d3a06e25545e6d585108e1cf475e9eaee18d09eb7281ee5edde",
       "required_by": ["deploy", "submit"],
       "note": "The user-authorized final-submission release binds the guided-UI candidate tree, approval ticket, and existing zero-cost ECS trial target. Alerts remain honestly console_blocked; scheduled release of the instance and system disk is the required hard containment control. Account identifiers and coupon codes are masked or omitted."
     },
